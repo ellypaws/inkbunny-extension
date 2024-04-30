@@ -80,11 +80,11 @@ Now, the Inkbunny AI Bridge should be ready to use.
 
 ### Inkbunny AI Bridge
 
-![Inkbunny AI Bridge](doc/screenshot.png)
+![Inkbunny AI Bridge](../doc/screenshot.png)
 
 It constructs a prepared ticket based on the heuristics for you to audit and modify to then submit to Inkbunny.
 
-![Ticket](doc/ticket.png)
+![Ticket](../doc/ticket.png)
 
 Additionally, there's a [full api server](https://github.com/ellypaws/inkbunny-app/tree/main/cmd/server) that provides additional tools.
 
