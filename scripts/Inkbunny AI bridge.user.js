@@ -363,7 +363,7 @@
         messageDiv.innerHTML = message.replace(/\n/g, '<br>');
         styleMessageDiv(messageDiv);
         contentDiv.appendChild(messageDiv);
-        initializeCopyFeature(messageDiv);
+        initializeCopyFeature(messageDiv, message)
         addCustomStyles();
 
         const parsedBBCodeDiv = document.createElement('div');
@@ -451,10 +451,10 @@
         document.head.appendChild(styleElement);
     }
 
-    function initializeCopyFeature(messageDiv) {
+    function initializeCopyFeature(messageDiv, message) {
         messageDiv.addEventListener('click', function () {
-            GM_setClipboard(this.textContent, 'text');
-            alert('Copied to Clipboard!'); // Change this to a less obtrusive notification if desired
+            GM_setClipboard(message, 'text');
+            alert('Copied to Clipboard!');
         });
     }
 
