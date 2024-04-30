@@ -105,11 +105,8 @@
                 logout();
             });
         }
-
-        // Focus the username field immediately
         formOverlay.querySelector('#username').focus();
 
-        // Handle form submission
         const form = formOverlay.querySelector('div div');
         form.onsubmit = function (event) {
             event.preventDefault();
