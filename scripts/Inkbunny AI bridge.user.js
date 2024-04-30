@@ -31,6 +31,32 @@
     GM_registerMenuCommand("Label as AI", () => setAction("label"), "l");
     GM_registerMenuCommand("Remove Entries", () => setAction("remove"), "r");
 
+    window.addEventListener("load", start);
+
+    function start() {
+        badgeStyle();
+        loaderStyle();
+
+        let shownLoggedOut = GM_getValue('shownLoggedOut', false);
+        let user = GM_getValue('user');
+
+        if (user !== undefined) {
+            shownLoggedOut = true;
+        }
+
+        if (!shownLoggedOut) {
+            promptLogin();
+            GM_setValue('shownLoggedOut', true);
+        }
+
+        if (!user) {
+            console.log('Logged out from extension, you can click on the login menu');
+        } else {
+            console.log('User found:', user);
+            collectDataAndPost();
+        }
+    }
+
     function setAction(action) {
         GM_setValue("action", action);
         window.location.reload();
@@ -155,27 +181,6 @@
                 console.error('Error during login:', error);
                 alert('Login failed, please check console for details.');
             });
-    }
-
-    function start() {
-        let shownLoggedOut = GM_getValue('shownLoggedOut', false);
-        let user = GM_getValue('user');
-
-        if (user !== undefined) {
-            shownLoggedOut = true;
-        }
-
-        if (!shownLoggedOut) {
-            promptLogin();
-            GM_setValue('shownLoggedOut', true);
-        }
-
-        if (!user) {
-            console.log('Logged out from extension, you can click on the login menu');
-        } else {
-            console.log('User found:', user);
-            collectDataAndPost();
-        }
     }
 
     function collectDataAndPost() {
@@ -475,8 +480,6 @@
         });
     }
 
-
-
     function applyLabelsAndBadges(link, item) {
         if (item.submission.metadata.ai_submission) {
             if (item.submission.metadata.generated) {
@@ -493,21 +496,7 @@
     function addLabel(link, label) {
         const labelElement = document.createElement("span");
         labelElement.textContent = label;
-        labelElement.style.fontFamily = "Inter, sans-serif";
-        if (label === 'Assisted*') {
-            labelElement.style.fontSize = "1em";
-            labelElement.style.fontWeight = "750";
-        } else {
-            labelElement.style.fontSize = "2em";
-            labelElement.style.fontWeight = "850";
-        }
-        labelElement.style.color = "#eeeeec";
-        labelElement.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
-        labelElement.style.padding = "3px 6px";
-        labelElement.style.borderRadius = "4px";
-        labelElement.style.position = "absolute";
-        labelElement.style.bottom = "5px";
-        labelElement.style.right = "5px";
+        labelElement.className = `label ${label === 'Assisted*' ? 'assisted' : 'default'}`;
         link.appendChild(labelElement);
     }
 
@@ -516,12 +505,6 @@
         if (!badgeContainer) {
             badgeContainer = document.createElement('div');
             badgeContainer.className = 'badge-container';
-            badgeContainer.style.display = 'grid';
-            badgeContainer.style.gridTemplateColumns = 'auto auto';
-            badgeContainer.style.gridGap = '4px';
-            badgeContainer.style.position = 'absolute';
-            badgeContainer.style.top = '5px';
-            badgeContainer.style.left = '5px';
             link.appendChild(badgeContainer);
         }
 
@@ -530,7 +513,9 @@
             const badge = document.createElement('span');
             badge.textContent = badgeText;
             const [bgColor, textColor] = getPaletteForBadge(badgeText);
-            styleBadge(badge, bgColor, textColor);
+            badge.className = 'badge';
+            badge.style.backgroundColor = bgColor;
+            badge.style.color = textColor;
             badgeContainer.appendChild(badge);
         });
     }
@@ -566,6 +551,52 @@
         badge.style.borderRadius = '12px';
         badge.style.display = 'inline-block';
         badge.style.textAlign = 'center';
+    }
+
+    function badgeStyle() {
+        const styleElement = document.createElement('style');
+        styleElement.textContent = `
+            .label {
+                font-family: 'Inter', sans-serif;
+                font-weight: 850;
+                color: #eeeeec;
+                background-color: rgba(0, 0, 0, 0.5);
+                padding: 3px 6px;
+                border-radius: 4px;
+                position: absolute;
+                bottom: 5px;
+                right: 5px;
+            }
+    
+            .label.assisted {
+                font-size: 1em;
+                font-weight: 750;
+            }
+    
+            .label.default {
+                font-size: 2em;
+            }
+    
+            .badge {
+                font-family: 'Inter', sans-serif;
+                font-size: 0.75em;
+                padding: 4px 8px;
+                margin-right: 4px;
+                border-radius: 12px;
+                display: inline-block;
+                text-align: center;
+            }
+    
+            .badge-container {
+                display: grid;
+                grid-template-columns: auto auto;
+                grid-gap: 4px;
+                position: absolute;
+                top: 5px;
+                left: 5px;
+            }
+        `;
+        document.head.appendChild(styleElement);
     }
 
     function displaySkeletonLoaders() {
@@ -611,8 +642,9 @@
         loaders.forEach(loader => loader.remove());
     }
 
-    const styleElement = document.createElement('style');
-    styleElement.textContent = `
+    function loaderStyle() {
+        const styleElement = document.createElement('style');
+        styleElement.textContent = `
     .loader {
         display: flex;
         font-family: 'Inter', sans-serif;
@@ -657,9 +689,7 @@
     @keyframes pulse {
         0%, 100% { background-color: #888a85; }
         50% { background-color: #babdb6; }
+    }`;
+        document.head.appendChild(styleElement);
     }
-`;
-    document.head.appendChild(styleElement);
-
-    window.addEventListener("load", start);
 })();
