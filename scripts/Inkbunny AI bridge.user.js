@@ -16,9 +16,17 @@
 (function () {
     "use strict";
 
-    const apiURL = "http://localhost:1323"; // Change this to your API URL
+    let apiURL = GM_getValue("apiURL", "http://localhost:1323"); // Change this to your API URL
 
-    GM_registerMenuCommand("User menu", promptLogin, "u");
+    GM_registerMenuCommand("User menu (login)", promptLogin, "u");
+    GM_registerMenuCommand("Set API URL", () => {
+        const newURL = prompt("Enter the URL of the API server", apiURL);
+        if (newURL) {
+            apiURL = newURL;
+            GM_setValue("apiURL", apiURL);
+        }
+    }, "s");
+    GM_registerMenuCommand("Log out", logout, "o");
     GM_registerMenuCommand("Blur Images", () => setAction("blur"), "b");
     GM_registerMenuCommand("Label as AI", () => setAction("label"), "l");
     GM_registerMenuCommand("Remove Entries", () => setAction("remove"), "r");
@@ -85,33 +93,36 @@
 
     function logout() {
         const user = GM_getValue('user');
-        if (user) {
-            fetch('https://inkbunny.net/api_logout.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `sid=${encodeURIComponent(user.sid)}`,
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.sid === user.sid) {
-                        GM_setValue('user', undefined);
-                        alert('Logged out successfully');
-                        console.log('Logged out successfully');
-                        const formOverlay = document.getElementById('login-overlay');
-                        if (formOverlay) {
-                            document.body.removeChild(formOverlay);
-                        }
-                    } else {
-                        alert('Logout failed: ' + (data.error_message || 'Unknown error'));
-                    }
-                })
-                .catch(error => {
-                    console.error('Error during logout:', error);
-                    alert('Logout failed, please check console for details.');
-                });
+        if (!user) {
+            alert('You are not logged in');
+            return;
         }
+
+        fetch('https://inkbunny.net/api_logout.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `sid=${encodeURIComponent(user.sid)}`,
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.sid === user.sid) {
+                    GM_setValue('user', undefined);
+                    alert('Logged out successfully');
+                    console.log('Logged out successfully');
+                    const formOverlay = document.getElementById('login-overlay');
+                    if (formOverlay) {
+                        document.body.removeChild(formOverlay);
+                    }
+                } else {
+                    alert('Logout failed: ' + (data.error_message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error during logout:', error);
+                alert('Logout failed, please check console for details.');
+            });
     }
 
     function loginUser(username, password) {
