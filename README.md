@@ -41,6 +41,10 @@
 
 This project is designed to detect AI-generated images made with stable diffusion in Inkbunny submissions. It processes files and descriptions and uses heuristics to determine if the submission follows the [guidelines](https://wiki.inkbunny.net/wiki/ACP#AI).
 
+By using crafted [heuristics](https://github.com/ellypaws/inkbunny-sd),
+as well as the potential to use an LLM to inference the parameters.
+A general purpose [API](https://github.com/ellypaws/inkbunny-app) library is available to integrate with your own program logic.
+
 ## Installation Instructions
 
 ### Prerequisites
