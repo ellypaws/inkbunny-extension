@@ -5,5 +5,8 @@
 *.dylib
 *.test
 *.out
+*.sqlite
+*.json
+*.ps1
 .idea/
 out/
