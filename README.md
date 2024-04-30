@@ -119,4 +119,4 @@ go build -o inkbunny-ai-bridge
 ./inkbunny-ai-bridge
 ```
 
-You can also use the pre-built binaries from the [releases page](https://github.com/ellypaws/inkbunny-sd/releases).
+You can also use the pre-built binaries from the [releases page](https://github.com/ellypaws/inkbunny-extension/releases).
