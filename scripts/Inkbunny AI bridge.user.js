@@ -37,6 +37,10 @@
         badgeStyle();
         loaderStyle();
 
+        if (action === "blur") {
+            blurStyle();
+        }
+
         let shownLoggedOut = GM_getValue('shownLoggedOut', false);
         let user = GM_getValue('user');
 
@@ -229,7 +233,7 @@
                 let buffer = '';
 
                 function processStream() {
-                    return reader.read().then(({ done, value }) => {
+                    return reader.read().then(({done, value}) => {
                         if (done) {
                             if (buffer.startsWith('[')) {
                                 try {
@@ -243,7 +247,7 @@
                             removeSkeletonLoaders();
                             return;
                         }
-                        buffer += decoder.decode(value, { stream: true });
+                        buffer += decoder.decode(value, {stream: true});
                         let lines = buffer.split('\n');
                         buffer = lines.pop();
                         lines.forEach(line => {
@@ -289,6 +293,8 @@
                 loader.remove();
             }
 
+            applyAction(action, submissionLink, item);
+
             if (currentPageSubmissionId === item.id) {
                 const contentDiv = document.querySelector("body > div.elephant.elephant_bottom.elephant_white > div.content");
                 if (contentDiv) {
@@ -302,6 +308,53 @@
                 }
             }
         });
+    }
+
+    function applyAction(action, link, item) {
+        if (!item) {
+            console.error('No item data provided');
+            return;
+        }
+        if (!item) {
+            console.error('No item data provided');
+            return;
+        }
+        switch (action) {
+            case 'blur':
+                if (item.submission.metadata.ai_submission) {
+                    link.classList.add('ai_generated');
+                }
+                break;
+            case 'label':
+                // collectDataAndPost();
+                break;
+            case 'remove':
+                if (item.submission.metadata.ai_submission) {
+                    removeSubmission(link);
+                }
+                break;
+        }
+    }
+
+    function blurStyle() {
+        const style = document.createElement('style');
+        document.head.appendChild(style);
+        style.textContent = `
+            .ai_generated img {
+                filter: blur(5px);
+                transition: filter 0.25s ease;
+            }
+            .ai_generated:hover img {
+                filter: none;
+            }
+        `;
+    }
+
+    function removeSubmission(link) {
+        const parent = link.closest('.widget_thumbnailLargeCompleteFromSubmission');
+        if (parent) {
+            parent.remove();
+        }
     }
 
     function displayMessage(contentDiv, message) {
@@ -637,6 +690,7 @@
 
         return loaderContainer;
     }
+
     function removeSkeletonLoaders() {
         const loaders = document.querySelectorAll('.loader');
         loaders.forEach(loader => loader.remove());
