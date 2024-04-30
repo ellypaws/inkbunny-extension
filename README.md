@@ -62,7 +62,7 @@ After installing a userscript manager, you can install the Inkbunny AI Bridge us
 A simpler [userscript](scripts/Inkbunny%20AI%20detector.user.js) is available if you do need the other features and only want the labelling, blurring or removal of AI generated images.
 
 Todo:
- - [ ] Fix blurring and removal of AI generated images (the old script does this but the new one is currently broken) 
+ - [x] Fix blurring and removal of AI generated images (the old script does this but the new one is currently broken) 
  - [ ] Allow editing of the prepared ticket
  - [ ] Highlight more relevant metadata and print generation objects (e.g. model, prompt, etc). Currently you can view this in the console debug.
  - [ ] Better styling
