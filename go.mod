@@ -3,7 +3,7 @@ module github.com/ellypaws/inkbunny-app/extension
 go 1.22.2
 
 require (
-	github.com/ellypaws/inkbunny-app v0.0.0-20240501074420-a51e65884a71
+	github.com/ellypaws/inkbunny-app v0.0.0-20240501151530-0bc8564e1a84
 	github.com/ellypaws/inkbunny-sd v0.0.0-20240430150932-8005d100c6ec
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/labstack/gommon v0.4.2

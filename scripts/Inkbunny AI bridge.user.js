@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Inkbunny AI bridge
 // @namespace    http://tampermonkey.net/
-// @version      1.0
+// @version      1.1
 // @description  Calls the auditing API to label AI generated submissions
 // @author       https://github.com/ellypaws
 // @match        *://inkbunny.net/*
@@ -204,10 +204,10 @@
         }
     }
 
-    function sendDataToAPI(submissionIds, output) {
+    function sendDataToAPI(submissionIds, output, artist) {
         const sid = GM_getValue('user')?.sid;
 
-        if (sid == '' || sid == undefined) {
+        if (sid === undefined || sid === '') {
             console.error('No session ID found. Please log in to Inkbunny and try again');
             return;
         }
@@ -215,15 +215,30 @@
         displaySkeletonLoaders();
         console.info('Sending data to API:', output, submissionIds);
 
-        const url = `${apiURL}/review/${submissionIds.join(',')}?parameters=true&output=${output}&stream=true`;
-        fetch(url, {
+        const AIGeneratedID = "530560";
+
+        const url = `${apiURL}/review/${submissionIds.join(',')}?parameters=true&output=${output}&stream=${output !== 'report' ? 'true' : 'false'}`;
+        return fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'x-sid': sid
-            }
+            },
+            body: JSON.stringify({
+                sid: sid,
+                user_id: `${artist}`,
+                get_rid: true,
+                page: 1,
+                keyword_id: AIGeneratedID,
+                submissions_per_page: 30,
+                submission_ids_only: true
+            })
         })
             .then(response => {
+                if (output === 'report') {
+                    return response.json();
+                }
+
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder('utf-8');
 
@@ -238,7 +253,7 @@
                                     console.info('Response is a JSON array:', data)
                                     processApiResponse(data);
                                 } catch (e) {
-                                    console.error('Error parsing JSON', e);
+                                    console.error('Error parsing JSON', buffer, e);
                                 }
                             }
                             removeSkeletonLoaders();
@@ -297,6 +312,7 @@
                 if (contentDiv) {
                     if (item.submission.metadata.ai_submission && item.ticket.responses[0]?.message) {
                         displayMessage(contentDiv, item.ticket.responses[0].message);
+                        displayShowAllSubmissionsButton(contentDiv, item);
                     } else {
                         displayOverrideButton(contentDiv, item.ticket.responses[0]?.message);
                     }
@@ -395,6 +411,54 @@
         contentDiv.appendChild(messageDiv);
     }
 
+    function displayShowAllSubmissionsButton(contentDiv, item) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'full-report-div';
+        messageDiv.style.display = 'flex';
+        messageDiv.style.alignItems = 'center';
+        messageDiv.style.justifyContent = 'space-between';
+        styleMessageDiv(messageDiv);
+
+        const textSpan = document.createElement('span');
+        textSpan.textContent = 'Show all submissions';
+        messageDiv.appendChild(textSpan);
+
+        const overrideButton = document.createElement('button');
+        overrideButton.textContent = 'Show';
+        overrideButton.style.padding = '5px 10px';
+        overrideButton.onclick = () => {
+            messageDiv.className = 'loader large';
+            const shimmer = document.createElement('div');
+            shimmer.className = 'shimmer';
+            messageDiv.textContent = 'Loading...';
+            messageDiv.appendChild(shimmer);
+            sendDataToAPI([item.user.username], 'report', item.user.user_id)
+                .then(data => {
+                    console.log('Received data:', data);
+
+                    const ticketMessage = document.createElement('div');
+                    const message = data?.ticket?.responses[0]?.message;
+
+                    ticketMessage.className = 'message-div';
+                    ticketMessage.innerHTML = message.replace(/\n/g, '<br>');
+
+                    styleMessageDiv(ticketMessage);
+                    contentDiv.appendChild(ticketMessage);
+                    initializeCopyFeature(ticketMessage, message)
+
+                    const parsedBBCodeDiv = document.createElement('div');
+                    parsedBBCodeDiv.innerHTML = parseBBCodeToHTML(message);
+
+                    styleMessageDiv(parsedBBCodeDiv);
+                    contentDiv.appendChild(parsedBBCodeDiv);
+                })
+                .catch(error => console.error('Error fetching data from API:', error))
+        };
+
+        messageDiv.appendChild(overrideButton);
+        contentDiv.appendChild(messageDiv);
+    }
+
     function styleMessageDiv(div) {
         div.style.padding = '25px';
         div.style.marginTop = '10px';
@@ -455,7 +519,6 @@
         });
     }
 
-
     function parseBBCodeToHTML(bbcode) {
         const urlRegex = /(?<!\[url=)(https?:\/\/[^\s]+)/g;
         bbcode = bbcode.replace(urlRegex, '[url=$1]$1[/url]');
@@ -473,15 +536,16 @@
             '\ib!\w+\b': '<a class="widget_userNameSmall watching" href="/$&" target="_blank" rel="nofollow noopener noreferrer">$&</a>',
             '\\[q=(.*?)\\](.*?)\\[/q\\]': '<div class="bbcode_quote"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="bbcode_quote_symbol" rowspan="2">"</td><td class="bbcode_quote_author">$1 wrote:</td></tr><tr><td class="bbcode_quote_quote">$2</td></tr></tbody></table></div>',
             '\\[color=(.*?)\\](.*?)\\[/color\\]': '<span style="color: $1;">$2</span>',
+            '\\[s](.*?)\\[/s\\]': '<hr />',
             '@(\\w+)': (match, username) => {
                 const avatarImage = document.querySelector("#pictop > table > tbody > tr > td:nth-child(2) > div > table > tbody > tr:nth-child(1) > td > table > tbody > tr > td > div > a > img");
                 const avatarSrc = avatarImage ? avatarImage.src : 'https://jp.ib.metapix.net/images80/usericons/small/noicon.png'
                 return `<table style="display: inline-block; vertical-align: bottom;">
                         <tbody><tr>
                             <td style="vertical-align: middle; border: none;">
-                                <div style="width: 50px; height: 50px; position: relative; margin: 0px auto;">
-                                    <a style="position: relative; border: 0px;" href="https://inkbunny.net/${username}" target="_blank" rel="nofollow noopener noreferrer">
-                                        <img class="shadowedimage" style="border: 0px;" src="${avatarSrc}" width="50" height="50" alt="${username}" title="${username}">
+                                <div style="width: 50px; height: 50px; position: relative; margin: 0 auto;">
+                                    <a style="position: relative; border: 0;" href="https://inkbunny.net/${username}" target="_blank" rel="nofollow noopener noreferrer">
+                                        <img class="shadowedimage" style="border: 0;" src="${avatarSrc}" width="50" height="50" alt="${username}" title="${username}">
                                     </a>
                                 </div>
                             </td>
