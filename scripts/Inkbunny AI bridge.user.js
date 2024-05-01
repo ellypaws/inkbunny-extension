@@ -24,6 +24,7 @@
         if (newURL) {
             apiURL = newURL;
             GM_setValue("apiURL", apiURL);
+            document.location.reload();
         }
     }, "s");
     GM_registerMenuCommand("Log out", logout, "o");
