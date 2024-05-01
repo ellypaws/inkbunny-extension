@@ -468,9 +468,9 @@
             '\\[b\\](.*?)\\[/b\\]': '<strong>$1</strong>',
             '\\[i\\](.*?)\\[/i\\]': '<em>$1</em>',
             '\\[u\\](.*?)\\[/u\\]': '<span class="underline">$1</span>',
-            '\\[url=(.*?)\\](.*?)\\[/url\\]': '<a href="$1" rel="nofollow">$2</a>',
-            '\\[name\\](.*?)\\[/name\\]': '<a class="widget_userNameSmall watching" href="/$1">$1</a>',
-            '\ib!\w+\b': '<a class="widget_userNameSmall watching" href="/$&">$&</a>',
+            '\\[url=(.*?)\\](.*?)\\[/url\\]': '<a href="$1" target="_blank" rel="nofollow noopener noreferrer">$2</a>',
+            '\\[name\\](.*?)\\[/name\\]': '<a class="widget_userNameSmall watching" href="/$1" target="_blank" rel="nofollow noopener noreferrer">$1</a>',
+            '\ib!\w+\b': '<a class="widget_userNameSmall watching" href="/$&" target="_blank" rel="nofollow noopener noreferrer">$&</a>',
             '\\[q=(.*?)\\](.*?)\\[/q\\]': '<div class="bbcode_quote"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="bbcode_quote_symbol" rowspan="2">"</td><td class="bbcode_quote_author">$1 wrote:</td></tr><tr><td class="bbcode_quote_quote">$2</td></tr></tbody></table></div>',
             '\\[color=(.*?)\\](.*?)\\[/color\\]': '<span style="color: $1;">$2</span>',
             '@(\\w+)': (match, username) => {
@@ -480,13 +480,13 @@
                         <tbody><tr>
                             <td style="vertical-align: middle; border: none;">
                                 <div style="width: 50px; height: 50px; position: relative; margin: 0px auto;">
-                                    <a style="position: relative; border: 0px;" href="https://inkbunny.net/${username}">
+                                    <a style="position: relative; border: 0px;" href="https://inkbunny.net/${username}" target="_blank" rel="nofollow noopener noreferrer">
                                         <img class="shadowedimage" style="border: 0px;" src="${avatarSrc}" width="50" height="50" alt="${username}" title="${username}">
                                     </a>
                                 </div>
                             </td>
                             <td style="vertical-align: bottom; font-size: 10pt;">
-                                <span style="position: relative; top: 2px;"><a href="https://inkbunny.net/${username}" class="widget_userNameSmall">${username}</a></span>
+                                <span style="position: relative; top: 2px;"><a href="https://inkbunny.net/${username}" class="widget_userNameSmall" target="_blank" rel="nofollow noopener noreferrer">${username}</a></span>
                             </td>
                         </tr>
                         </tbody></table>`;
