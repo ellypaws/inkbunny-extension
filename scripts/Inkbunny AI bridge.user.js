@@ -515,8 +515,12 @@
 
     function initializeCopyFeature(messageDiv, message) {
         messageDiv.addEventListener('click', function () {
-            GM_setClipboard(message, 'text');
-            alert('Copied to Clipboard!');
+            const selectedText = window.getSelection().toString();
+            const textToCopy = selectedText ? selectedText : message;
+            GM_setClipboard(textToCopy, 'text');
+            if (!selectedText) {
+                alert('Copied to Clipboard!');
+            }
         });
     }
 
