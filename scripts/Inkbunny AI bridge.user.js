@@ -374,7 +374,7 @@
     function displayMessage(contentDiv, message) {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message-div copyable';
-        messageDiv.innerHTML = message.replace(/\n/g, '<br>');
+        messageDiv.innerHTML = message.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
 
         contentDiv.appendChild(messageDiv);
         initializeCopyFeature(messageDiv, message)
@@ -528,6 +528,8 @@
         bbcode = bbcode.replace(ibName, '[name]$1[/name]');
 
         const bbTagReplacements = {
+            '<': '&lt;',
+            '>': '&gt;',
             '\n': '<br>',
             '\\[b\\](.*?)\\[/b\\]': '<strong>$1</strong>',
             '\\[i\\](.*?)\\[/i\\]': '<em>$1</em>',
