@@ -47,11 +47,9 @@ A general purpose [API](https://github.com/ellypaws/inkbunny-app) library is ava
 
 ## Installation Instructions
 
-### Prerequisites
-
-Make sure you have api turned on in your Inkbunny account settings. You will need your API key and SID to
+> *Make sure you have api turned on in your Inkbunny account settings. You will need your API key and SID to
 use the Inkbunny API. You can change this in
-your [account settings](https://inkbunny.net/account.php#:~:text=API%20(External%20Scripting))
+your [account settings](https://inkbunny.net/account.php#:~:text=API%20(External%20Scripting))*
 
 You will need to install a userscript manager extension in your web browser. You can use tampermonkey, greasemonkey or any similar userscript extension.
 
@@ -59,17 +57,17 @@ You will need to install a userscript manager extension in your web browser. You
 
 After installing a userscript manager, you can install the Inkbunny AI Bridge userscript.
 
-1. The current version of the [userscript](Inkbunny%20AI%20bridge.user.js) is available in [scripts](.).
+1. The current version of the [userscript](scripts/Inkbunny%20AI%20bridge.user.js) is available in [scripts](scripts).
 2. Click on the "Raw" button, your userscript manager will recognize this as a userscript and ask for confirmation to install it.
 3. Alternatively you can either download or copy the content of the userscript and paste it in your userscript manager.
 
-A simpler [userscript](Inkbunny%20AI%20detector.user.js) is available if you do need the other features and only want the labelling, blurring or removal of AI generated images.
+A simpler [userscript](scripts/Inkbunny%20AI%20detector.user.js) is available if you do need the other features and only want the labelling, blurring or removal of AI generated images.
 
 Todo:
- - [x] Fix blurring and removal of AI generated images (the old script does this but the new one is currently broken) 
- - [ ] Allow editing of the prepared ticket
- - [ ] Highlight more relevant metadata and print generation objects (e.g. model, prompt, etc). Currently you can view this in the console debug.
- - [ ] Better styling
+- [x] Fix blurring and removal of AI generated images (the old script does this but the new one is currently broken)
+- [ ] Allow editing of the prepared ticket
+- [ ] Highlight more relevant metadata and print generation objects (e.g. model, prompt, etc). Currently you can view this in the console debug.
+- [ ] Better styling
 
 ### Configuring the Userscript
 
@@ -82,7 +80,11 @@ After installing the userscript, you need to configure it to match your server U
 
 Now, the Inkbunny AI Bridge should be ready to use.
 
-### Inkbunny AI Bridge
+## Inkbunny AI Bridge
+
+The Inkbunny AI Bridge extends the functionality of your browser through a userscript that creates a ticket ready for your review. Based on advanced heuristics, the script prepares everything you need to ensure the content meets Inkbunny's standards.
+
+It displays a badge on each submission to quickly notify you of any potential flagged submission worth verifying.
 
 ![Inkbunny AI Bridge](../doc/screenshot.png)
 
@@ -90,9 +92,14 @@ It constructs a prepared ticket based on the heuristics for you to audit and mod
 
 ![Ticket](../doc/ticket.png)
 
+<details>
+<summary>Full api server</summary>
+
 Additionally, there's a [full api server](https://github.com/ellypaws/inkbunny-app/tree/main/cmd/server) that provides additional tools.
 
 A demo app is available either at [https://inkbunny.keiau.space](https://inkbunny.keiau.space/app/audits) or in [retool](https://inkbunny.retool.com).
+![Inkbunny Ticket Auditor](https://github.com/ellypaws/inkbunny-app/blob/main/cmd/server/doc/screenshot.png?raw=true)
+</details>
 
 ### Building from Source
 
