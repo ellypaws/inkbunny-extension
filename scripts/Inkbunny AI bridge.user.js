@@ -246,7 +246,7 @@
                 let buffer = '';
 
                 function processStream() {
-                    return reader.read().then(({done, value}) => {
+                    return reader.read().then(({ done, value }) => {
                         if (done) {
                             if (buffer.startsWith('[')) {
                                 try {
@@ -260,7 +260,7 @@
                             removeSkeletonLoaders();
                             return;
                         }
-                        buffer += decoder.decode(value, {stream: true});
+                        buffer += decoder.decode(value, { stream: true });
                         let lines = buffer.split('\n');
                         buffer = lines.pop();
                         lines.forEach(line => {
@@ -373,26 +373,26 @@
 
     function displayMessage(contentDiv, message) {
         const messageDiv = document.createElement('div');
-        messageDiv.className = 'message-div';
+        messageDiv.className = 'message-div copyable';
         messageDiv.innerHTML = message.replace(/\n/g, '<br>');
-        styleMessageDiv(messageDiv);
+
         contentDiv.appendChild(messageDiv);
         initializeCopyFeature(messageDiv, message)
         addCustomStyles();
 
         const parsedBBCodeDiv = document.createElement('div');
+        parsedBBCodeDiv.className = 'message-div';
         parsedBBCodeDiv.innerHTML = parseBBCodeToHTML(message);
-        styleMessageDiv(parsedBBCodeDiv);
+
         contentDiv.appendChild(parsedBBCodeDiv);
     }
 
     function displayOverrideButton(contentDiv, message) {
         const messageDiv = document.createElement('div');
-        messageDiv.className = 'message-div';
+        messageDiv.className = 'message-div copyable';
         messageDiv.style.display = 'flex';
         messageDiv.style.alignItems = 'center';
         messageDiv.style.justifyContent = 'space-between';
-        styleMessageDiv(messageDiv);
 
         const textSpan = document.createElement('span');
         textSpan.textContent = 'Submission is not detected as AI generated';
@@ -414,11 +414,7 @@
 
     function displayShowAllSubmissionsButton(contentDiv, item) {
         const messageDiv = document.createElement('div');
-        messageDiv.className = 'full-report-div';
-        messageDiv.style.display = 'flex';
-        messageDiv.style.alignItems = 'center';
-        messageDiv.style.justifyContent = 'space-between';
-        styleMessageDiv(messageDiv);
+        messageDiv.className = 'full-report-div message-div';
 
         const textSpan = document.createElement('span');
         textSpan.textContent = 'Show all submissions';
@@ -440,17 +436,16 @@
                     const ticketMessage = document.createElement('div');
                     const message = data?.ticket?.responses[0]?.message;
 
-                    ticketMessage.className = 'message-div';
+                    ticketMessage.className = 'message-div copyable';
                     ticketMessage.innerHTML = message.replace(/\n/g, '<br>');
 
-                    styleMessageDiv(ticketMessage);
                     contentDiv.appendChild(ticketMessage);
                     initializeCopyFeature(ticketMessage, message)
 
                     const parsedBBCodeDiv = document.createElement('div');
+                    parsedBBCodeDiv.className = 'message-div';
                     parsedBBCodeDiv.innerHTML = parseBBCodeToHTML(message);
 
-                    styleMessageDiv(parsedBBCodeDiv);
                     contentDiv.appendChild(parsedBBCodeDiv);
                 })
                 .catch(error => console.error('Error fetching data from API:', error))
@@ -458,14 +453,6 @@
 
         messageDiv.appendChild(overrideButton);
         contentDiv.appendChild(messageDiv);
-    }
-
-    function styleMessageDiv(div) {
-        div.style.padding = '25px';
-        div.style.marginTop = '10px';
-        div.style.backgroundColor = '#d3d7cf';
-        div.style.border = '0px solid #ccc';
-        div.style.borderRadius = '20px';
     }
 
     function addCustomStyles() {
@@ -477,16 +464,19 @@
                 background-color: #d3d7cf;
                 border: 0px solid #ccc;
                 border-radius: 20px;
-                transition: background-color 0.3s ease;
-                cursor: pointer;
                 position: relative;
             }
+            
+            .copyable {
+                cursor: pointer;
+                transition: background-color 0.3s ease;
+            }
 
-            .message-div:hover {
+            .copyable:hover {
                 background-color: #b8bbaf;
             }
 
-            .message-div::after {
+            .copyable::after {
                 content: 'Click to copy to clipboard';
                 position: absolute;
                 top: 50%;
@@ -505,9 +495,15 @@
                 visibility: hidden;
             }
 
-            .message-div:hover::after {
+            .copyable:hover::after {
                 opacity: 1;
                 visibility: visible;
+            }
+
+            .full-report-div {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
             }
         `;
         document.head.appendChild(styleElement);
