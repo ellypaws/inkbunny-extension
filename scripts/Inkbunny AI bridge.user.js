@@ -310,6 +310,8 @@
             if (currentPageSubmissionId === item.id) {
                 const contentDiv = document.querySelector("body > div.elephant.elephant_bottom.elephant_white > div.content");
                 if (contentDiv) {
+                    addCustomStyles();
+
                     if (item.submission.metadata.ai_submission && item.ticket.responses[0]?.message) {
                         displayMessage(contentDiv, item.ticket.responses[0].message);
                         displayShowAllSubmissionsButton(contentDiv, item);
@@ -377,7 +379,6 @@
 
         contentDiv.appendChild(messageDiv);
         initializeCopyFeature(messageDiv, message)
-        addCustomStyles();
 
         const parsedBBCodeDiv = document.createElement('div');
         parsedBBCodeDiv.className = 'message-div';
@@ -388,7 +389,7 @@
 
     function displayOverrideButton(contentDiv, message) {
         const messageDiv = document.createElement('div');
-        messageDiv.className = 'message-div copyable';
+        messageDiv.className = 'message-div';
         messageDiv.style.display = 'flex';
         messageDiv.style.alignItems = 'center';
         messageDiv.style.justifyContent = 'space-between';
