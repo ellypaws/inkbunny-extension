@@ -9,7 +9,6 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_setClipboard
-// @grant        GM_cookie
 // @run-at       document-start
 // ==/UserScript==
 
