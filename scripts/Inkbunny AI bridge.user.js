@@ -204,7 +204,7 @@
         }
     }
 
-    function sendDataToAPI(submissionIds, output, artist) {
+    function sendDataToAPI(submissionIds, output, config) {
         const sid = GM_getValue('user')?.sid;
 
         if (sid === undefined || sid === '') {
@@ -226,11 +226,12 @@
             },
             body: JSON.stringify({
                 sid: sid,
-                user_id: `${artist}`,
+                user_id: `${config?.user_id}`,
+                text: config?.text,
+                submissions_per_page: config?.limit,
                 get_rid: true,
                 page: 1,
                 keyword_id: AIGeneratedID,
-                submissions_per_page: 30,
                 submission_ids_only: true
             })
         })
@@ -245,7 +246,7 @@
                 let buffer = '';
 
                 function processStream() {
-                    return reader.read().then(({ done, value }) => {
+                    return reader.read().then(({done, value}) => {
                         if (done) {
                             if (buffer.startsWith('[')) {
                                 try {
@@ -259,7 +260,7 @@
                             removeSkeletonLoaders();
                             return;
                         }
-                        buffer += decoder.decode(value, { stream: true });
+                        buffer += decoder.decode(value, {stream: true});
                         let lines = buffer.split('\n');
                         buffer = lines.pop();
                         lines.forEach(line => {
@@ -417,43 +418,64 @@
         messageDiv.className = 'full-report-div message-div';
 
         const textSpan = document.createElement('span');
-        textSpan.textContent = 'Show all submissions';
+        textSpan.textContent = `Show all submissions by ${item.user.username}`;
         messageDiv.appendChild(textSpan);
+
+        const rightSide = document.createElement('div');
+
+        const limitInput = document.createElement('input');
+        limitInput.type = 'number';
+        limitInput.value = "30";
+        limitInput.className = 'input-limit';
+
+        const textInput = document.createElement('input');
+        textInput.type = 'text';
+        textInput.value = "ai_generated";
+        textInput.className = 'input-limit';
 
         const overrideButton = document.createElement('button');
         overrideButton.textContent = 'Show';
-        overrideButton.style.padding = '5px 10px';
+        overrideButton.className = 'button-show';
         overrideButton.onclick = () => {
+            const limit = limitInput.value;
+
             messageDiv.className = 'loader large';
             const shimmer = document.createElement('div');
             shimmer.className = 'shimmer';
             messageDiv.textContent = 'Loading...';
             messageDiv.appendChild(shimmer);
-            sendDataToAPI([item.user.username], 'report', item.user.user_id)
+
+            // Simulated API call
+            sendDataToAPI([item.user.username], 'report', {
+                limit: limit,
+                text: textInput.value,
+                user_id: item.user.user_id
+            })
                 .then(data => {
                     console.log('Received data:', data);
 
                     const ticketMessage = document.createElement('div');
-                    const message = data?.ticket?.responses[0]?.message;
-
                     ticketMessage.className = 'message-div copyable';
-                    ticketMessage.innerHTML = message.replace(/\n/g, '<br>');
-
+                    ticketMessage.innerHTML = data?.ticket?.responses[0]?.message.replace(/\n/g, '<br>');
                     contentDiv.appendChild(ticketMessage);
-                    initializeCopyFeature(ticketMessage, message)
+                    initializeCopyFeature(ticketMessage);
 
                     const parsedBBCodeDiv = document.createElement('div');
                     parsedBBCodeDiv.className = 'message-div';
-                    parsedBBCodeDiv.innerHTML = parseBBCodeToHTML(message);
-
+                    parsedBBCodeDiv.innerHTML = parseBBCodeToHTML(data?.ticket?.responses[0]?.message);
                     contentDiv.appendChild(parsedBBCodeDiv);
                 })
-                .catch(error => console.error('Error fetching data from API:', error))
+                .catch(error => console.error('Error fetching data from API:', error));
         };
 
-        messageDiv.appendChild(overrideButton);
+        rightSide.appendChild(textInput);
+        rightSide.appendChild(limitInput);
+        rightSide.appendChild(overrideButton);
+        messageDiv.appendChild(rightSide);
+
         contentDiv.appendChild(messageDiv);
     }
+
 
     function addCustomStyles() {
         const styleElement = document.createElement('style');
@@ -501,9 +523,23 @@
             }
 
             .full-report-div {
-                display: flex;
+                display: grid;
+                grid-template-columns: 3fr 1fr;
                 align-items: center;
-                justify-content: space-between;
+                gap: 10px;
+            }
+            
+            .input-limit, .button-show {
+                grid-column: 2;
+            }
+        
+            .input-limit {
+                width: 50px;
+                margin-right: 5px;
+            }
+        
+            .button-show {
+                padding: 5px 10px;
             }
         `;
         document.head.appendChild(styleElement);
