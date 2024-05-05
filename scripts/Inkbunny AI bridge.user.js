@@ -215,8 +215,6 @@
         displaySkeletonLoaders();
         console.info('Sending data to API:', output, submissionIds);
 
-        const AIGeneratedID = "530560";
-
         const url = `${apiURL}/review/${submissionIds.join(',')}?parameters=true&output=${output}&stream=${output !== 'report' ? 'true' : 'false'}`;
         return fetch(url, {
             method: 'POST',
@@ -231,8 +229,9 @@
                 submissions_per_page: config?.limit,
                 get_rid: true,
                 page: 1,
-                keyword_id: AIGeneratedID,
-                submission_ids_only: true
+                submission_ids_only: true,
+                random: false,
+                type: [],
             })
         })
             .then(response => {
