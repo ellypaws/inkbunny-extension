@@ -635,14 +635,14 @@
 
     function applyLabelsAndBadges(link, item) {
         if (item.submission.metadata.ai_submission) {
-            if (item.submission.metadata.generated) {
-                addLabel(link, 'AI');
-            } else if (item.submission.metadata.assisted) {
+            if (item.submission.metadata.assisted) {
                 addLabel(link, 'Assisted*');
+            } else {
+                addLabel(link, 'AI');
+                if (item.ticket?.labels) {
+                    addBadges(link, item.ticket.labels);
+                }
             }
-        }
-        if (item.submission.metadata.generated && item.ticket?.labels) {
-            addBadges(link, item.ticket.labels);
         }
     }
 
