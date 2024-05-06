@@ -119,11 +119,18 @@
     }
 
     function logout() {
+        if (!confirm('Are you sure you want to log out?')) {
+            console.log('User cancelled logout')
+            return;
+        }
+
         const user = GM_getValue('user');
         if (!user) {
             alert('You are not logged in');
             return;
         }
+
+        console.log('Logging out...')
 
         fetch('https://inkbunny.net/api_logout.php', {
             method: 'POST',
