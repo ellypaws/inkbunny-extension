@@ -629,13 +629,19 @@
         }
 
         artists.forEach((artist) => {
-            const artistLink = document.createElement('a');
-            artistLink.href = `https://inkbunny.net/${artist.username}`;
-            artistLink.textContent = artist.username;
-            artistLink.className = 'widget_userNameSmall watching';
-            artistLink.target = '_blank';
-            styleBadge(artistLink, "#000");
-            badgeContainer.appendChild(artistLink);
+            if (artist.user_id) {
+                const artistLink = document.createElement('a');
+                artistLink.textContent = artist.username;
+                artistLink.href = `https://inkbunny.net/${artist.username}`;
+                artistLink.className = 'badge widget_userNameSmall watching artist_used';
+                artistLink.target = '_blank';
+                badgeContainer.appendChild(artistLink);
+            } else {
+                const badge = document.createElement('span');
+                badge.textContent = artist.username + ' ?';
+                badge.className = 'badge artist_used unknown_artist';
+                badgeContainer.appendChild(badge);
+            }
         });
     }
 
@@ -700,18 +706,6 @@
 
     const [bgColor, textColor] = getRandomPalette();
 
-    function styleBadge(badge, bgColor, textColor) {
-        badge.style.fontFamily = 'Inter, sans-serif';
-        badge.style.fontSize = '0.75em';
-        badge.style.color = textColor;
-        badge.style.backgroundColor = bgColor;
-        badge.style.padding = '4px 8px';
-        badge.style.marginRight = '4px';
-        badge.style.borderRadius = '12px';
-        badge.style.display = 'inline-block';
-        badge.style.textAlign = 'center';
-    }
-
     function badgeStyle() {
         const styleElement = document.createElement('style');
         styleElement.textContent = `
@@ -753,6 +747,16 @@
                 position: absolute;
                 top: 5px;
                 left: 5px;
+            }
+            
+            .badge.artist_used {
+                background-color: #000;
+                color: #555753;
+            }
+            
+            .badge.unknown_artist {
+                color: #bb91f3;
+                font-style: italic;
             }
         `;
         document.head.appendChild(styleElement);
