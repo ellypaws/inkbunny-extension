@@ -460,15 +460,17 @@
                 .then(data => {
                     console.log('Received data:', data);
 
-                    const ticketMessage = document.createElement('div');
-                    ticketMessage.className = 'message-div copyable';
-                    ticketMessage.innerHTML = data?.ticket?.responses[0]?.message.replace(/\n/g, '<br>');
-                    contentDiv.appendChild(ticketMessage);
-                    initializeCopyFeature(ticketMessage);
+                    const message = data?.ticket?.responses[0]?.message
+
+                    const ticketContainer = document.createElement('div');
+                    ticketContainer.className = 'message-div copyable';
+                    ticketContainer.innerHTML = message.replace(/\n/g, '<br>');
+                    contentDiv.appendChild(ticketContainer);
+                    initializeCopyFeature(ticketContainer, message);
 
                     const parsedBBCodeDiv = document.createElement('div');
                     parsedBBCodeDiv.className = 'message-div';
-                    parsedBBCodeDiv.innerHTML = parseBBCodeToHTML(data?.ticket?.responses[0]?.message);
+                    parsedBBCodeDiv.innerHTML = parseBBCodeToHTML(message);
                     contentDiv.appendChild(parsedBBCodeDiv);
                 })
                 .catch(error => console.error('Error fetching data from API:', error));
