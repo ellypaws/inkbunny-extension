@@ -40,6 +40,8 @@ func main() {
 	e.GET("/review/:id", api.GetReviewHandler, config...)
 	e.POST("/review/:id", api.GetReviewHandler, config...)
 
+	e.File("/favicon.ico", "../api/public/16930_inkbunny_inkbunnylogo_trans_rev_outline.ico")
+
 	e.Logger.Infof("Starting server on port %s", port)
 	e.Logger.Fatal(e.Start(":" + port))
 }
@@ -159,7 +161,7 @@ func init() {
 	}
 
 	e.Logger.Infof("%s %s", coloredText.String(), "https://github.com/ellypaws")
-	e.Logger.Infof("Post issues at %s", "https://github.com/ellypaws/inkbunny-extension/issues")
+	e.Logger.Infof("Post issues at %s", "https://github.com/ellypaws/inkbunny-app/issues")
 
 	e.Logger.Infof("     api host: %s", api.ServerHost)
 	if sdHost.Alive() {
