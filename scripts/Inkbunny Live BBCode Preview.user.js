@@ -306,7 +306,7 @@
             previewDiv.style.borderRadius = '15px';
             previewDiv.style.boxShadow = '0px 0px 10px rgba(0, 0, 0, 0.15)';
             previewDiv.style.fontFamily = 'Arial';
-            previewDiv.style.fontSize = '12pt';
+            previewDiv.style.fontSize = '10pt';
             previewDiv.style.backgroundColor = '#f9f9f9';
             previewDiv.style.color = '#000';
 
