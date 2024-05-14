@@ -116,14 +116,8 @@
             '\\[iconname\\](.*?)\\[/iconname\\]': async (match, username) => createIcon(username, true),
             '@(\\w+)': async (match, username) => createIcon(username, true),
             '\\[code\\]([\\s\\S]*?)\\[/code\\]': (match, code) => `<pre>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`,
-            '\\[da\\](.*?)\\[/da\\]': (match, username) => createSocialLink('da', username),
-            'da!(\\w+)': (match, username) => createSocialLink('da', username),
-            '\\[fa\\](.*?)\\[/fa\\]': (match, username) => createSocialLink('fa', username),
-            'fa!(\\w+)': (match, username) => createSocialLink('fa', username),
-            '\\[sf\\](.*?)\\[/sf\\]': (match, username) => createSocialLink('sf', username),
-            'sf!(\\w+)': (match, username) => createSocialLink('sf', username),
-            '\\[w\\](.*?)\\[/w\\]': (match, username) => createSocialLink('w', username),
-            'w!(\\w+)': (match, username) => createSocialLink('w', username)
+            '\\[(da|fa|sf|w)\\](.*?)\\[/\\1\\]': (match, site, username) => createSocialLink(site, username),
+            '(da|fa|sf|w)!(\\w+)': (match, site, username) => createSocialLink(site, username)
         };
 
         // Apply BBCode to HTML replacements
