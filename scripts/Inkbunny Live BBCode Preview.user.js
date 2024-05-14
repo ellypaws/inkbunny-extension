@@ -51,6 +51,38 @@
         return iconUrl;
     }
 
+    function createSocialLink(site, username) {
+        const sites = {
+            da: {
+                title: 'deviantART',
+                url: `https://${username}.deviantart.com/`,
+                icon: 'https://jp.ib.metapix.net/images80/contacttypes/internet-deviantart.png'
+            },
+            fa: {
+                title: 'Fur Affinity',
+                url: `https://furaffinity.net/user/${username}`,
+                icon: 'https://jp.ib.metapix.net/images80/contacttypes/internet-furaffinity.png'
+            },
+            sf: {
+                title: 'SoFurry',
+                url: `https://${username}.sofurry.com/`,
+                icon: 'https://jp.ib.metapix.net/images80/contacttypes/sofurry.png'
+            },
+            w: {
+                title: 'Weasyl',
+                url: `https://www.weasyl.com/~${username}`,
+                icon: 'https://jp.ib.metapix.net/images80/contacttypes/weasyl.png'
+            }
+        };
+
+        const siteData = sites[site];
+        if (!siteData) return '';
+
+        return `<a style="border: none;" title="${username} on ${siteData.title}" rel="nofollow" href="${siteData.url}">
+                    <img style="border: none; vertical-align: bottom; width: 14px; height: 14px;" width="14" height="14" src="${siteData.icon}" />
+                </a><a title="${username} on ${siteData.title}" rel="nofollow" href="${siteData.url}">${username}</a>`;
+    }
+
     // Function to convert BBCode to HTML
     async function bbcodeToHtml(bbcode) {
         // Replace plain URLs with [url] BBCode
@@ -84,14 +116,14 @@
             '\\[iconname\\](.*?)\\[/iconname\\]': async (match, username) => createIcon(username, true),
             '@(\\w+)': async (match, username) => createIcon(username, true),
             '\\[code\\]([\\s\\S]*?)\\[/code\\]': (match, code) => `<pre>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`,
-            '\\[da\\](.*?)\\[/da\\]': '<a style="border: none;" title="$1 on deviantART" rel="nofollow" href="https://$1.deviantart.com/"><img style="border: none; vertical-align: bottom; width: 14px; height: 14px;" width="14" height="14" src="https://jp.ib.metapix.net/images80/contacttypes/internet-deviantart.png" /></a><a title="$1 on deviantART" rel="nofollow" href="https://$1.deviantart.com/">$1</a>',
-            '\\[fa\\](.*?)\\[/fa\\]': '<a style="border: none;" title="$1 on Fur Affinity" rel="nofollow" href="https://furaffinity.net/user/$1"><img style="border: none; vertical-align: bottom; width: 14px; height: 14px;" width="14" height="14" src="https://jp.ib.metapix.net/images80/contacttypes/internet-furaffinity.png" /></a><a title="$1 on Fur Affinity" rel="nofollow" href="https://furaffinity.net/user/$1">$1</a>',
-            '\\[sf\\](.*?)\\[/sf\\]': '<a style="border: none;" title="$1 on SoFurry" rel="nofollow" href="https://$1.sofurry.com/"><img style="border: none; vertical-align: bottom; width: 14px; height: 14px;" width="14" height="14" src="https://jp.ib.metapix.net/images80/contacttypes/sofurry.png" /></a><a title="$1 on SoFurry" rel="nofollow" href="https://$1.sofurry.com/">$1</a>',
-            '\\[w\\](.*?)\\[/w\\]': '<a style="border: none;" title="$1 on Weasyl" rel="nofollow" href="https://www.weasyl.com/~$1"><img style="border: none; vertical-align: bottom; width: 14px; height: 14px;" width="14" height="14" src="https://jp.ib.metapix.net/images80/contacttypes/weasyl.png" /></a><a title="$1 on Weasyl" rel="nofollow" href="https://www.weasyl.com/~$1">$1</a>',
-            'fa!(\\w+)': '<a style="border: none;" title="$1 on Fur Affinity" rel="nofollow" href="https://furaffinity.net/user/$1"><img style="border: none; vertical-align: bottom; width: 14px; height: 14px;" width="14" height="14" src="https://jp.ib.metapix.net/images80/contacttypes/internet-furaffinity.png" /></a><a title="$1 on Fur Affinity" rel="nofollow" href="https://furaffinity.net/user/$1">$1</a>',
-            'da!(\\w+)': '<a style="border: none;" title="$1 on deviantART" rel="nofollow" href="https://$1.deviantart.com/"><img style="border: none; vertical-align: bottom; width: 14px; height: 14px;" width="14" height="14" src="https://jp.ib.metapix.net/images80/contacttypes/internet-deviantart.png" /></a><a title="$1 on deviantART" rel="nofollow" href="https://$1.deviantart.com/">$1</a>',
-            'sf!(\\w+)': '<a style="border: none;" title="$1 on SoFurry" rel="nofollow" href="https://$1.sofurry.com/"><img style="border: none; vertical-align: bottom; width: 14px; height: 14px;" width="14" height="14" src="https://jp.ib.metapix.net/images80/contacttypes/sofurry.png" /></a><a title="$1 on SoFurry" rel="nofollow" href="https://$1.sofurry.com/">$1</a>',
-            'w!(\\w+)': '<a style="border: none;" title="$1 on Weasyl" rel="nofollow" href="https://www.weasyl.com/~$1"><img style="border: none; vertical-align: bottom; width: 14px; height: 14px;" width="14" height="14" src="https://jp.ib.metapix.net/images80/contacttypes/weasyl.png" /></a><a title="$1 on Weasyl" rel="nofollow" href="https://www.weasyl.com/~$1">$1</a>'
+            '\\[da\\](.*?)\\[/da\\]': (match, username) => createSocialLink('da', username),
+            'da!(\\w+)': (match, username) => createSocialLink('da', username),
+            '\\[fa\\](.*?)\\[/fa\\]': (match, username) => createSocialLink('fa', username),
+            'fa!(\\w+)': (match, username) => createSocialLink('fa', username),
+            '\\[sf\\](.*?)\\[/sf\\]': (match, username) => createSocialLink('sf', username),
+            'sf!(\\w+)': (match, username) => createSocialLink('sf', username),
+            '\\[w\\](.*?)\\[/w\\]': (match, username) => createSocialLink('w', username),
+            'w!(\\w+)': (match, username) => createSocialLink('w', username)
         };
 
         // Apply BBCode to HTML replacements
