@@ -127,24 +127,28 @@
         });
     }
 
-    function updateThumbnail(sizePrefix, submissionId, page) {
-        const sizeMap = {S: 'small', M: 'medium', L: 'large', H: 'huge'};
-        const size = sizeMap[sizePrefix.toUpperCase()] || sizePrefix;
-        const placeholderId = `thumb-${submissionId}-${page ? page : ''}-${size}`;
+    function updateThumbnails(placeholderMap) {
+        placeholderMap.forEach((match, placeholderId) => {
+            const sizePrefix = match[1];
+            const submissionId = match[2];
+            const page = match[3];
+            const sizeMap = {S: 'small', M: 'medium', L: 'large', H: 'huge'};
+            const size = sizeMap[sizePrefix.toUpperCase()] || sizePrefix;
 
-        getThumbnailUrl(submissionId, page, size).then(imgUrl => {
-            const elem = document.getElementById(placeholderId);
-            if (!elem) {
-                console.error(`Element not found for placeholder ID: ${placeholderId}`);
-                return;
-            }
-            console.log(`Updating thumbnail for submission ID: ${submissionId}, page: ${page}, size: ${size}`, elem, imgUrl);
-            if (imgUrl) {
-                const imgTag = `<img src="${imgUrl}" alt="Thumbnail" />`;
-                elem.outerHTML = imgTag;
-            } else {
-                elem.outerHTML = `<a href="https://inkbunny.net/s/${submissionId}" target="_blank">Submission ${submissionId}</a>`;
-            }
+            getThumbnailUrl(submissionId, page, size).then(imgUrl => {
+                const elem = document.getElementById(placeholderId);
+                if (!elem) {
+                    console.error(`Element not found for placeholder ID: ${placeholderId}`);
+                    return;
+                }
+                console.log(`Updating thumbnail for submission ID: ${submissionId}, page: ${page}, size: ${size}`, elem, imgUrl);
+                if (imgUrl) {
+                    const imgTag = `<img src="${imgUrl}" alt="Thumbnail" />`;
+                    elem.outerHTML = imgTag;
+                } else {
+                    elem.outerHTML = `<a href="https://inkbunny.net/s/${submissionId}" target="_blank">Submission ${submissionId}</a>`;
+                }
+            });
         });
     }
 
@@ -209,27 +213,22 @@
         thumbMatches.forEach(match => submissionIds.add(match[2]));
         shortcutMatches.forEach(match => submissionIds.add(match[2]));
 
+        const placeholderMap = new Map();
+
         // Create placeholders for thumbnails
-        for (const match of thumbMatches) {
-            const size = match[1];
-            const submissionId = match[2];
-            const page = match[3];
-            const placeholderId = `thumb-${submissionId}-${page ? page : 'preview'}-${size}`;
+        bbcode = bbcode.replace(thumbRegex, '<div id="$&">$&</div>');
+        bbcode = bbcode.replace(shortcutRegex, '<div id="$&">$&</div>');
 
-            const placeholder = match[0];
-            bbcode = bbcode.replace(match[0], `<div id="${placeholderId}">${placeholder}</div>`);
-        }
+        // Store matches in the map
+        thumbMatches.forEach(match => {
+            const placeholderId = match[0];
+            placeholderMap.set(placeholderId, match);
+        });
 
-        for (const match of shortcutMatches) {
-            const sizeMap = {S: 'small', M: 'medium', L: 'large', H: 'huge'};
-            const size = sizeMap[match[1]];
-            const submissionId = match[2];
-            const page = match[3];
-            const placeholderId = `thumb-${submissionId}-${page ? page : 'preview'}-${size}`;
-
-            const placeholder = match[0];
-            bbcode = bbcode.replace(match[0], `<div id="${placeholderId}">${placeholder}</div>`);
-        }
+        shortcutMatches.forEach(match => {
+            const placeholderId = match[0];
+            placeholderMap.set(placeholderId, match);
+        });
 
         // Fetch and process thumbnails
         if (sid) {
@@ -237,9 +236,8 @@
         }
 
         // Return the processed BBCode with placeholders
-        return bbcode;
+        return {bbcode, placeholderMap};
     }
-
 
     // Function to create the icon HTML
     async function createIcon(username, includeName = false) {
@@ -299,18 +297,11 @@
                     previewDiv.appendChild(placeholder);
                 } else {
                     placeholder.style.display = 'none';
-                    const processedBBCode = await bbcodeToHtml(textarea.value);
-                    previewDiv.innerHTML = processedBBCode;
+                    const {bbcode, placeholderMap} = await bbcodeToHtml(textarea.value);
+                    previewDiv.innerHTML = bbcode;
 
-                    // Call updateThumbnail after setting innerHTML
-                    const thumbRegex = /\[(small|medium|large|huge)thumb\](\d+)(?:,(\d+))?\[\/\1thumb\]/g;
-                    const shortcutRegex = /#(S|M|L|H)(\d+)(?:,(\d+))?/g;
-
-                    const thumbMatches = [...processedBBCode.matchAll(thumbRegex)];
-                    const shortcutMatches = [...processedBBCode.matchAll(shortcutRegex)];
-
-                    thumbMatches.forEach(match => updateThumbnail(match[1], match[2], match[3]));
-                    shortcutMatches.forEach(match => updateThumbnail(match[1], match[2], match[3]));
+                    // Call updateThumbnails after setting innerHTML
+                    updateThumbnails(placeholderMap);
                 }
             });
         }
