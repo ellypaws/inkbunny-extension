@@ -318,6 +318,8 @@
 
         // Update the selection range
         textarea.setSelectionRange(newStart, newEnd);
+        const event = new Event('input', {bubbles: true});
+        textarea.dispatchEvent(event);
     }
 
     function handleKeyDown(event) {
