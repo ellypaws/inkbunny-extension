@@ -5,6 +5,7 @@
 // @description  Calls the auditing API to label AI generated submissions
 // @author       https://github.com/ellypaws
 // @match        *://inkbunny.net/*
+// @icon         https://github.com/ellypaws/inkbunny-extension/blob/main/public/favicon.ico
 // @grant        GM_registerMenuCommand
 // @grant        GM_getValue
 // @grant        GM_setValue
