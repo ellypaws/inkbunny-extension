@@ -85,11 +85,11 @@
                 </a><a title="${username} on ${siteData.title}" rel="nofollow" href="${siteData.url}">${username}</a>`;
     }
 
-    // Function to get the thumbnail URL for a given submission ID and page
     async function getThumbnailUrl(submissionId, page, size) {
         if (!sid) return null;
 
         if (cachedSubmissions[submissionId]) {
+            console.log(`Using cached data for submission ID: ${submissionId}`);
             return getThumbnailFromCache(cachedSubmissions[submissionId], page, size);
         }
 
@@ -107,10 +107,45 @@
 
         if (page) {
             const file = submission.files[Number(page) - 1];
-            return file ? file[`thumbnail_url_${size}_noncustom`] || file.file_url_full : null;
+            console.log(`File for submission ID: ${submission.submission_id}, page: ${page}`, file);
+            return file ? file[`thumbnail_url_${size}_noncustom`] || file[`thumbnail_url_${size}`] || file.file_url_preview : null;
         } else {
-            return submission[`thumbnail_url_${size}_noncustom`] || submission.file_url_full;
+            console.log(`Submission data for submission ID: ${submission.submission_id}`, submission);
+            return submission[`thumbnail_url_${size}_noncustom`] || submission[`thumbnail_url_${size}`] || submission.file_url_preview;
         }
+    }
+
+    async function fetchAndProcessThumbnails(submissionIds) {
+        const uniqueIds = [...submissionIds];
+        console.log(`Fetching data for submission IDs: ${uniqueIds.join(', ')}`);
+        const response = await fetch(`https://inkbunny.net/api_submissions.php?sid=${sid}&submission_ids=${uniqueIds.join(',')}`);
+        const data = await response.json();
+
+        uniqueIds.forEach(id => {
+            cachedSubmissions[id] = data.submissions.find(sub => sub.submission_id == id);
+            console.log(`Data for submission ID: ${id}`, cachedSubmissions[id]);
+        });
+    }
+
+    function updateThumbnail(sizePrefix, submissionId, page) {
+        const sizeMap = {S: 'small', M: 'medium', L: 'large', H: 'huge'};
+        const size = sizeMap[sizePrefix.toUpperCase()] || sizePrefix;
+        const placeholderId = `thumb-${submissionId}-${page ? page : ''}-${size}`;
+
+        getThumbnailUrl(submissionId, page, size).then(imgUrl => {
+            const elem = document.getElementById(placeholderId);
+            if (!elem) {
+                console.error(`Element not found for placeholder ID: ${placeholderId}`);
+                return;
+            }
+            console.log(`Updating thumbnail for submission ID: ${submissionId}, page: ${page}, size: ${size}`, elem, imgUrl);
+            if (imgUrl) {
+                const imgTag = `<img src="${imgUrl}" alt="Thumbnail" />`;
+                elem.outerHTML = imgTag;
+            } else {
+                elem.outerHTML = `<a href="https://inkbunny.net/s/${submissionId}" target="_blank">Submission ${submissionId}</a>`;
+            }
+        });
     }
 
     // Function to convert BBCode to HTML
@@ -163,80 +198,48 @@
             }
         }
 
-        // Replace thumbnail BBCode asynchronously
+        // Collect unique submission IDs
+        const submissionIds = new Set();
         const thumbRegex = /\[(small|medium|large|huge)thumb\](\d+)(?:,(\d+))?\[\/\1thumb\]/g;
-        const thumbMatches = [...bbcode.matchAll(thumbRegex)];
+        const shortcutRegex = /#(S|M|L|H)(\d+)(?:,(\d+))?/g;
 
+        const thumbMatches = [...bbcode.matchAll(thumbRegex)];
+        const shortcutMatches = [...bbcode.matchAll(shortcutRegex)];
+
+        thumbMatches.forEach(match => submissionIds.add(match[2]));
+        shortcutMatches.forEach(match => submissionIds.add(match[2]));
+
+        // Create placeholders for thumbnails
         for (const match of thumbMatches) {
             const size = match[1];
             const submissionId = match[2];
             const page = match[3];
-            const placeholderId = `thumb-${submissionId}-${page}-${size}`;
+            const placeholderId = `thumb-${submissionId}-${page ? page : 'preview'}-${size}`;
 
-            if (sid) {
-                const placeholder = `<span id="${placeholderId}">Loading...</span>`;
-                bbcode = bbcode.replace(match[0], placeholder);
-                getThumbnailUrl(submissionId, page, size).then(imgUrl => {
-                    const elem = document.getElementById(placeholderId);
-                    if (elem) {
-                        if (imgUrl) {
-                            const imgTag = `<img src="${imgUrl}" alt="Thumbnail" />`;
-                            elem.outerHTML = imgTag;
-                        } else {
-                            elem.outerHTML = `<a href="https://inkbunny.net/s/${submissionId}" target="_blank">Submission ${submissionId}</a>`;
-                        }
-                    }
-                });
-            } else {
-                bbcode = bbcode.replace(match[0], `[${size}thumb]${submissionId}${page ? ',' + page : ''}[/${size}thumb]`);
-            }
+            const placeholder = match[0];
+            bbcode = bbcode.replace(match[0], `<div id="${placeholderId}">${placeholder}</div>`);
         }
-
-        // Replace shortcut BBCode asynchronously
-        const shortcutRegex = /#(S|M|L|H)(\d+)(?:,(\d+))?/g;
-        const shortcutMatches = [...bbcode.matchAll(shortcutRegex)];
 
         for (const match of shortcutMatches) {
-            const size = match[1].toLowerCase();
+            const sizeMap = {S: 'small', M: 'medium', L: 'large', H: 'huge'};
+            const size = sizeMap[match[1]];
             const submissionId = match[2];
             const page = match[3];
-            const placeholderId = `thumb-${submissionId}-${page}-${size}`;
+            const placeholderId = `thumb-${submissionId}-${page ? page : 'preview'}-${size}`;
 
-            if (sid) {
-                const placeholder = `<span id="${placeholderId}">Loading...</span>`;
-                bbcode = bbcode.replace(match[0], placeholder);
-                getThumbnailUrl(submissionId, page, size).then(imgUrl => {
-                    const elem = document.getElementById(placeholderId);
-                    if (elem) {
-                        if (imgUrl) {
-                            const imgTag = `<img src="${imgUrl}" alt="Thumbnail" />`;
-                            elem.outerHTML = imgTag;
-                        } else {
-                            elem.outerHTML = `<a href="https://inkbunny.net/s/${submissionId}" target="_blank">Submission ${submissionId}</a>`;
-                        }
-                    }
-                });
-            } else {
-                bbcode = bbcode.replace(match[0], `#${match[1]}${submissionId}${page ? ',' + page : ''}`);
-            }
+            const placeholder = match[0];
+            bbcode = bbcode.replace(match[0], `<div id="${placeholderId}">${placeholder}</div>`);
         }
 
-        // Handle fallback case when SID is not set
-        if (!sid) {
-            const fallbackThumbRegex = /\[(small|medium|large|huge)thumb\](\d+)\[\/\1thumb\]/g;
-            bbcode = bbcode.replace(fallbackThumbRegex, (match, size, submissionId) => {
-                return `[${size}thumb]${submissionId}[/${size}thumb]`;
-            });
-
-            const fallbackShortcutRegex = /#(S|M|L|H)(\d+)(?:,(\d+))?/g;
-            bbcode = bbcode.replace(fallbackShortcutRegex, (match, size, submissionId) => {
-                return `#${match[1]}${submissionId}${match[3] ? ',' + match[3] : ''}`;
-            });
+        // Fetch and process thumbnails
+        if (sid) {
+            await fetchAndProcessThumbnails(submissionIds);
         }
 
-
+        // Return the processed BBCode with placeholders
         return bbcode;
     }
+
 
     // Function to create the icon HTML
     async function createIcon(username, includeName = false) {
@@ -296,7 +299,18 @@
                     previewDiv.appendChild(placeholder);
                 } else {
                     placeholder.style.display = 'none';
-                    previewDiv.innerHTML = await bbcodeToHtml(textarea.value);
+                    const processedBBCode = await bbcodeToHtml(textarea.value);
+                    previewDiv.innerHTML = processedBBCode;
+
+                    // Call updateThumbnail after setting innerHTML
+                    const thumbRegex = /\[(small|medium|large|huge)thumb\](\d+)(?:,(\d+))?\[\/\1thumb\]/g;
+                    const shortcutRegex = /#(S|M|L|H)(\d+)(?:,(\d+))?/g;
+
+                    const thumbMatches = [...processedBBCode.matchAll(thumbRegex)];
+                    const shortcutMatches = [...processedBBCode.matchAll(shortcutRegex)];
+
+                    thumbMatches.forEach(match => updateThumbnail(match[1], match[2], match[3]));
+                    shortcutMatches.forEach(match => updateThumbnail(match[1], match[2], match[3]));
                 }
             });
         }
