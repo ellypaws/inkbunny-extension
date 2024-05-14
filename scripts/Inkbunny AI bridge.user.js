@@ -5,7 +5,7 @@
 // @description  Calls the auditing API to label AI generated submissions
 // @author       https://github.com/ellypaws
 // @match        *://inkbunny.net/*
-// @icon         https://github.com/ellypaws/inkbunny-extension/blob/main/public/favicon.ico
+// @icon         https://github.com/ellypaws/inkbunny-extension/blob/main/public/favicon.ico?raw=true
 // @grant        GM_registerMenuCommand
 // @grant        GM_getValue
 // @grant        GM_setValue
@@ -16,7 +16,7 @@
 (function () {
     "use strict";
 
-    let apiURL = GM_getValue("apiURL", "http://localhost:1323"); // Change this to your API URL
+    let apiURL = GM_getValue("apiURL", "http://localhost:1323"); // Change this to your API URL or use the menu
 
     GM_registerMenuCommand("User menu (login)", promptLogin, "u");
     GM_registerMenuCommand("Set API URL", () => {
