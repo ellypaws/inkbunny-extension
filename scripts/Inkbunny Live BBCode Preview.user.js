@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Inkbunny Live BBCode Preview
 // @namespace    http://tampermonkey.net/
-// @version      1.8
+// @version      1.9
 // @description  Adds a live BBCode preview for the message and comment textareas on Inkbunny, including submission thumbnails and various BBCode tags
 // @author       https://github.com/ellypaws
 // @match        *://inkbunny.net/*
@@ -15,6 +15,7 @@
     'use strict';
 
     const cachedUserIcons = {};
+    const cachedSubmissions = {};
 
     // Prompt for SID and save it
     function promptForSid() {
@@ -51,6 +52,7 @@
         return iconUrl;
     }
 
+    // Function to create social media link
     function createSocialLink(site, username) {
         const sites = {
             da: {
@@ -81,6 +83,34 @@
         return `<a style="border: none;" title="${username} on ${siteData.title}" rel="nofollow" href="${siteData.url}">
                     <img style="border: none; vertical-align: bottom; width: 14px; height: 14px;" width="14" height="14" src="${siteData.icon}" />
                 </a><a title="${username} on ${siteData.title}" rel="nofollow" href="${siteData.url}">${username}</a>`;
+    }
+
+    // Function to get the thumbnail URL for a given submission ID and page
+    async function getThumbnailUrl(submissionId, page, size) {
+        if (!sid) return null;
+
+        if (cachedSubmissions[submissionId]) {
+            return getThumbnailFromCache(cachedSubmissions[submissionId], page, size);
+        }
+
+        console.log(`Fetching data for submission ID: ${submissionId}`);
+        const response = await fetch(`https://inkbunny.net/api_submissions.php?sid=${sid}&submission_ids=${submissionId}`);
+        const data = await response.json();
+        cachedSubmissions[submissionId] = data.submissions.find(sub => sub.submission_id == submissionId);
+        console.log(`Data for submission ID: ${submissionId}`, cachedSubmissions[submissionId]);
+
+        return getThumbnailFromCache(cachedSubmissions[submissionId], page, size);
+    }
+
+    function getThumbnailFromCache(submission, page, size) {
+        if (!submission) return null;
+
+        if (page) {
+            const file = submission.files[Number(page) - 1];
+            return file ? file[`thumbnail_url_${size}_noncustom`] || file.file_url_full : null;
+        } else {
+            return submission[`thumbnail_url_${size}_noncustom`] || submission.file_url_full;
+        }
     }
 
     // Function to convert BBCode to HTML
@@ -133,7 +163,7 @@
             }
         }
 
-        // Replace thumbnail BBCode
+        // Replace thumbnail BBCode asynchronously
         const thumbRegex = /\[(small|medium|large|huge)thumb\](\d+)(?:,(\d+))?\[\/\1thumb\]/g;
         const thumbMatches = [...bbcode.matchAll(thumbRegex)];
 
@@ -141,24 +171,53 @@
             const size = match[1];
             const submissionId = match[2];
             const page = match[3];
-            const imgUrl = await getThumbnailUrl(submissionId, page, size);
-            if (imgUrl) {
-                const imgTag = `<img src="${imgUrl}" alt="Thumbnail" />`;
-                bbcode = bbcode.replace(match[0], imgTag);
+            const placeholderId = `thumb-${submissionId}-${page}-${size}`;
+
+            if (sid) {
+                const placeholder = `<span id="${placeholderId}">Loading...</span>`;
+                bbcode = bbcode.replace(match[0], placeholder);
+                getThumbnailUrl(submissionId, page, size).then(imgUrl => {
+                    const elem = document.getElementById(placeholderId);
+                    if (elem) {
+                        if (imgUrl) {
+                            const imgTag = `<img src="${imgUrl}" alt="Thumbnail" />`;
+                            elem.outerHTML = imgTag;
+                        } else {
+                            elem.outerHTML = `<a href="https://inkbunny.net/s/${submissionId}" target="_blank">Submission ${submissionId}</a>`;
+                        }
+                    }
+                });
+            } else {
+                bbcode = bbcode.replace(match[0], `[${size}thumb]${submissionId}${page ? ',' + page : ''}[/${size}thumb]`);
             }
         }
 
-        // Replace shortcut BBCode
-        const shortcutRegex = /#S(\d+)(?:,(\d+))?/g;
+        // Replace shortcut BBCode asynchronously
+        const shortcutRegex = /#(S|M|L|H)(\d+)(?:,(\d+))?/g;
         const shortcutMatches = [...bbcode.matchAll(shortcutRegex)];
 
         for (const match of shortcutMatches) {
-            const submissionId = match[1];
-            const page = match[2];
-            const imgUrl = await getThumbnailUrl(submissionId, page, 'small');
-            if (imgUrl) {
-                const imgTag = `<img src="${imgUrl}" alt="Thumbnail" />`;
-                bbcode = bbcode.replace(match[0], imgTag);
+            const size = match[1].toLowerCase();
+            const submissionId = match[2];
+            const page = match[3];
+            const placeholderId = `thumb-${submissionId}-${page}-${size}`;
+
+            if (sid) {
+                const placeholder = `<span id="${placeholderId}">Loading...</span>`;
+                bbcode = bbcode.replace(match[0], placeholder);
+                getThumbnailUrl(submissionId, page, size).then(imgUrl => {
+                    const elem = document.getElementById(placeholderId);
+                    if (elem) {
+                        if (imgUrl) {
+                            const imgTag = `<img src="${imgUrl}" alt="Thumbnail" />`;
+                            elem.outerHTML = imgTag;
+                        } else {
+                            elem.outerHTML = `<a href="https://inkbunny.net/s/${submissionId}" target="_blank">Submission ${submissionId}</a>`;
+                        }
+                    }
+                });
+            } else {
+                bbcode = bbcode.replace(match[0], `#${match[1]}${submissionId}${page ? ',' + page : ''}`);
             }
         }
 
@@ -166,41 +225,17 @@
         if (!sid) {
             const fallbackThumbRegex = /\[(small|medium|large|huge)thumb\](\d+)\[\/\1thumb\]/g;
             bbcode = bbcode.replace(fallbackThumbRegex, (match, size, submissionId) => {
-                return `<a href="https://inkbunny.net/s/${submissionId}" target="_blank">Submission ${submissionId}</a>`;
+                return `[${size}thumb]${submissionId}[/${size}thumb]`;
             });
 
-            const fallbackShortcutRegex = /#S(\d+)/g;
-            bbcode = bbcode.replace(fallbackShortcutRegex, (match, submissionId) => {
-                return `<a href="https://inkbunny.net/s/${submissionId}" target="_blank">Submission ${submissionId}</a>`;
+            const fallbackShortcutRegex = /#(S|M|L|H)(\d+)(?:,(\d+))?/g;
+            bbcode = bbcode.replace(fallbackShortcutRegex, (match, size, submissionId) => {
+                return `#${match[1]}${submissionId}${match[3] ? ',' + match[3] : ''}`;
             });
         }
+
 
         return bbcode;
-    }
-
-    // Function to fetch the thumbnail URL for a given submission ID and page
-    const cachedSubmissions = {};
-
-    async function getThumbnailUrl(submissionId, page, size) {
-        if (!sid) return null;
-
-        if (!cachedSubmissions[submissionId]) {
-            console.log(`Fetching data for submission ID: ${submissionId}`);
-            const response = await fetch(`https://inkbunny.net/api_submissions.php?sid=${sid}&submission_ids=${submissionId}`);
-            const data = await response.json();
-            cachedSubmissions[submissionId] = data.submissions.find(sub => sub.submission_id == submissionId);
-            console.log(`Data for submission ID: ${submissionId}`, cachedSubmissions[submissionId]);
-        }
-
-        const submission = cachedSubmissions[submissionId];
-        if (!submission) return null;
-
-        if (page) {
-            const file = submission.files[Number(page) - 1];
-            return file ? file[`thumbnail_url_${size}_noncustom`] || file.file_url_full : null;
-        } else {
-            return submission[`thumbnail_url_${size}_noncustom`] || submission.file_url_full;
-        }
     }
 
     // Function to create the icon HTML
@@ -225,13 +260,6 @@
 
     // Function to create the preview area
     function createPreviewArea(textarea, referenceNode) {
-        if (!textarea) {
-            return;
-        }
-        if (!referenceNode) {
-            console.error('Reference node not found');
-            return;
-        }
         if (textarea && referenceNode) {
             // Create the preview div
             const previewDiv = document.createElement('div');
