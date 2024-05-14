@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Inkbunny Live BBCode Preview
 // @namespace    http://tampermonkey.net/
-// @version      1.7
-// @description  Adds a live BBCode preview for the message and comment textareas on Inkbunny, including submission thumbnails
+// @version      1.8
+// @description  Adds a live BBCode preview for the message and comment textareas on Inkbunny, including submission thumbnails and various BBCode tags
 // @author       https://github.com/ellypaws
 // @match        *://inkbunny.net/*
 // @icon         https://github.com/ellypaws/inkbunny-extension/blob/main/public/favicon.ico?raw=true
@@ -11,8 +11,10 @@
 // @grant        GM_registerMenuCommand
 // ==/UserScript==
 
-(function() {
+(function () {
     'use strict';
+
+    const cachedUserIcons = {};
 
     // Prompt for SID and save it
     function promptForSid() {
@@ -28,6 +30,26 @@
 
     // Get SID from storage
     const sid = GM_getValue('sid', '');
+
+    // Function to get the icon URL for a username
+    async function getIconUrl(username) {
+        if (cachedUserIcons[username]) {
+            return cachedUserIcons[username];
+        }
+
+        const response = await fetch(`https://inkbunny.net/api_username_autosuggest.php?username=${username}`, {
+            method: 'POST'
+        });
+        const data = await response.json();
+        const user = data.results.find(user => user.value.toLowerCase() === username.toLowerCase());
+
+        let iconUrl = 'https://jp.ib.metapix.net/images80/usericons/small/noicon.png';
+        if (user && user.icon) {
+            iconUrl = `https://jp.ib.metapix.net/usericons/small/${user.icon}`;
+        }
+        cachedUserIcons[username] = iconUrl;
+        return iconUrl;
+    }
 
     // Function to convert BBCode to HTML
     async function bbcodeToHtml(bbcode) {
@@ -47,35 +69,39 @@
             '\\[b\\](.*?)\\[/b\\]': '<strong>$1</strong>',
             '\\[i\\](.*?)\\[/i\\]': '<em>$1</em>',
             '\\[u\\](.*?)\\[/u\\]': '<span class="underline">$1</span>',
-            '\\[url=(.*?)\\](.*?)\\[/url\\]': '<a href="$1" rel="nofollow">$2</a>',
-            '\\[name\\](.*?)\\[/name\\]': '<a class="widget_userNameSmall watching" href="/$1">$1</a>',
+            '\\[s\\](.*?)\\[/s\\]': '<span class="strikethrough">$1</span>',
+            '\\[t\\](.*?)\\[/t\\]': '<span class="font_title">$1</span>',
+            '\\[left\\](.*?)\\[/left\\]': '<div class="align_left">$1</div>',
+            '\\[center\\](.*?)\\[/center\\]': '<div class="align_center">$1</div>',
+            '\\[right\\](.*?)\\[/right\\]': '<div class="align_right">$1</div>',
+            '\\[q\\](.*?)\\[/q\\]': '<div class="bbcode_quote"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="bbcode_quote_symbol" rowspan="2">"</td><td class="bbcode_quote_quote">$1</td></tr></tbody></table></div>',
             '\\[q=(.*?)\\](.*?)\\[/q\\]': '<div class="bbcode_quote"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="bbcode_quote_symbol" rowspan="2">"</td><td class="bbcode_quote_author">$1 wrote:</td></tr><tr><td class="bbcode_quote_quote">$2</td></tr></tbody></table></div>',
+            '\\[url=(.*?)\\](.*?)\\[/url\\]': '<a href="$1" rel="nofollow">$2</a>',
+            '\\[url\\](.*?)\\[/url\\]': '<a href="$1" rel="nofollow">$1</a>',
             '\\[color=(.*?)\\](.*?)\\[/color\\]': '<span style="color: $1;">$2</span>',
-            '\\[s](.*?)\\[/s\\]': '<hr />',
-            '@(\\w+)': (match, username) => {
-                const avatarImage = document.querySelector("#pictop > table > tbody > tr > td:nth-child(2) > div > table > tbody > tr:nth-child(1) > td > table > tbody > tr > td > div > a > img");
-                const avatarSrc = avatarImage ? avatarImage.src : 'https://jp.ib.metapix.net/images80/usericons/small/noicon.png';
-                return `<table style="display: inline-block; vertical-align: bottom;">
-                        <tbody><tr>
-                            <td style="vertical-align: middle; border: none;">
-                                <div style="width: 50px; height: 50px; position: relative; margin: 0 auto;">
-                                    <a style="position: relative; border: 0;" href="https://inkbunny.net/${username}">
-                                        <img class="shadowedimage" style="border: 0;" src="${avatarSrc}" width="50" height="50" alt="${username}" title="${username}">
-                                    </a>
-                                </div>
-                            </td>
-                            <td style="vertical-align: bottom; font-size: 10pt;">
-                                <span style="position: relative; top: 2px;"><a href="https://inkbunny.net/${username}" class="widget_userNameSmall">${username}</a></span>
-                            </td>
-                        </tr>
-                        </tbody></table>`;
-            }
+            '\\[name\\](.*?)\\[/name\\]': '<a class="widget_userNameSmall watching" href="/$1">$1</a>',
+            '\\[icon\\](.*?)\\[/icon\\]': async (match, username) => createIcon(username),
+            '\\[iconname\\](.*?)\\[/iconname\\]': async (match, username) => createIcon(username, true),
+            '@(\\w+)': async (match, username) => createIcon(username, true),
+            '\\[code\\]([\\s\\S]*?)\\[/code\\]': (match, code) => `<pre>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`,
+            '\\[da\\](.*?)\\[/da\\]': '<a style="border: none;" title="$1 on deviantART" rel="nofollow" href="https://$1.deviantart.com/"><img style="border: none; vertical-align: bottom; width: 14px; height: 14px;" width="14" height="14" src="https://jp.ib.metapix.net/images80/contacttypes/internet-deviantart.png" /></a><a title="$1 on deviantART" rel="nofollow" href="https://$1.deviantart.com/">$1</a>',
+            '\\[fa\\](.*?)\\[/fa\\]': '<a style="border: none;" title="$1 on Fur Affinity" rel="nofollow" href="https://furaffinity.net/user/$1"><img style="border: none; vertical-align: bottom; width: 14px; height: 14px;" width="14" height="14" src="https://jp.ib.metapix.net/images80/contacttypes/internet-furaffinity.png" /></a><a title="$1 on Fur Affinity" rel="nofollow" href="https://furaffinity.net/user/$1">$1</a>',
+            '\\[sf\\](.*?)\\[/sf\\]': '<a style="border: none;" title="$1 on SoFurry" rel="nofollow" href="https://$1.sofurry.com/"><img style="border: none; vertical-align: bottom; width: 14px; height: 14px;" width="14" height="14" src="https://jp.ib.metapix.net/images80/contacttypes/sofurry.png" /></a><a title="$1 on SoFurry" rel="nofollow" href="https://$1.sofurry.com/">$1</a>',
+            '\\[w\\](.*?)\\[/w\\]': '<a style="border: none;" title="$1 on Weasyl" rel="nofollow" href="https://www.weasyl.com/~$1"><img style="border: none; vertical-align: bottom; width: 14px; height: 14px;" width="14" height="14" src="https://jp.ib.metapix.net/images80/contacttypes/weasyl.png" /></a><a title="$1 on Weasyl" rel="nofollow" href="https://www.weasyl.com/~$1">$1</a>',
+            'fa!(\\w+)': '<a style="border: none;" title="$1 on Fur Affinity" rel="nofollow" href="https://furaffinity.net/user/$1"><img style="border: none; vertical-align: bottom; width: 14px; height: 14px;" width="14" height="14" src="https://jp.ib.metapix.net/images80/contacttypes/internet-furaffinity.png" /></a><a title="$1 on Fur Affinity" rel="nofollow" href="https://furaffinity.net/user/$1">$1</a>',
+            'da!(\\w+)': '<a style="border: none;" title="$1 on deviantART" rel="nofollow" href="https://$1.deviantart.com/"><img style="border: none; vertical-align: bottom; width: 14px; height: 14px;" width="14" height="14" src="https://jp.ib.metapix.net/images80/contacttypes/internet-deviantart.png" /></a><a title="$1 on deviantART" rel="nofollow" href="https://$1.deviantart.com/">$1</a>',
+            'sf!(\\w+)': '<a style="border: none;" title="$1 on SoFurry" rel="nofollow" href="https://$1.sofurry.com/"><img style="border: none; vertical-align: bottom; width: 14px; height: 14px;" width="14" height="14" src="https://jp.ib.metapix.net/images80/contacttypes/sofurry.png" /></a><a title="$1 on SoFurry" rel="nofollow" href="https://$1.sofurry.com/">$1</a>',
+            'w!(\\w+)': '<a style="border: none;" title="$1 on Weasyl" rel="nofollow" href="https://www.weasyl.com/~$1"><img style="border: none; vertical-align: bottom; width: 14px; height: 14px;" width="14" height="14" src="https://jp.ib.metapix.net/images80/contacttypes/weasyl.png" /></a><a title="$1 on Weasyl" rel="nofollow" href="https://www.weasyl.com/~$1">$1</a>'
         };
 
         // Apply BBCode to HTML replacements
         for (const [pattern, replacement] of Object.entries(bbTagReplacements)) {
             if (typeof replacement === 'function') {
-                bbcode = bbcode.replace(new RegExp(pattern, 'g'), replacement);
+                const matches = [...bbcode.matchAll(new RegExp(pattern, 'g'))];
+                for (const match of matches) {
+                    const replacementHtml = await replacement(...match);
+                    bbcode = bbcode.replace(match[0], replacementHtml);
+                }
             } else {
                 bbcode = bbcode.replace(new RegExp(pattern, 'g'), replacement);
             }
@@ -149,6 +175,26 @@
         } else {
             return submission[`thumbnail_url_${size}_noncustom`] || submission.file_url_full;
         }
+    }
+
+    // Function to create the icon HTML
+    async function createIcon(username, includeName = false) {
+        const iconUrl = await getIconUrl(username);
+        const iconHtml = `<table style="display: inline-block; vertical-align:bottom;">
+                            <tr>
+                                <td style="vertical-align: middle; border: none;">
+                                    <div style="width: 50px; height: 50px; position: relative; margin: 0px auto;">
+                                        <a style="position: relative; border: 0px;" href="https://inkbunny.net/${username}">
+                                            <img class="shadowedimage" style="border: 0px;" src="${iconUrl}" width="50" height="50" alt="${username}" title="${username}" />
+                                        </a>
+                                    </div>
+                                </td>
+                                ${includeName ? `<td style="vertical-align: bottom; font-size: 10pt;">
+                                    <span style="position: relative; top: 2px;"><a href="https://inkbunny.net/${username}" class="widget_userNameSmall">${username}</a></span>
+                                </td>` : ''}
+                            </tr>
+                          </table>`;
+        return iconHtml;
     }
 
     // Function to create the preview area
