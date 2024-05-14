@@ -1,10 +1,10 @@
 module github.com/ellypaws/inkbunny-app/extension
 
-go 1.22.2
+go 1.22.3
 
 require (
-	github.com/ellypaws/inkbunny-app v0.0.0-20240507172902-6ceb496d14b1
-	github.com/ellypaws/inkbunny-sd v0.0.0-20240505183159-4f4a910e01c2
+	github.com/ellypaws/inkbunny-app v0.0.0-20240514175556-d733695d3f7e
+	github.com/ellypaws/inkbunny-sd v0.0.0-20240514145251-edf619312d99
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/labstack/gommon v0.4.2
 	github.com/muesli/termenv v0.15.2
