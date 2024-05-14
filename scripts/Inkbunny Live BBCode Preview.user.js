@@ -133,7 +133,11 @@
             const submissionId = match[2];
             const page = match[3];
             const sizeMap = {S: 'small', M: 'medium', L: 'large', H: 'huge'};
-            const size = sizeMap[sizePrefix.toUpperCase()] || sizePrefix;
+            let size = sizeMap[sizePrefix.toUpperCase()] || sizePrefix;
+            // replace small to medium as that's defunct
+            if (size === 'small') {
+                size = 'medium';
+            }
 
             getThumbnailUrl(submissionId, page, size).then(imgUrl => {
                 const elem = document.getElementById(placeholderId);
