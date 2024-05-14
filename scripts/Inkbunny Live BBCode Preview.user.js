@@ -116,15 +116,49 @@
     function getThumbnailFromCache(submission, page, size) {
         if (!submission) return null;
 
-        if (page) {
-            const file = submission.files[Number(page) - 1];
-            console.log(`File for submission ID: ${submission.submission_id}, page: ${page}`, file);
-            return file ? file[`thumbnail_url_${size}_noncustom`] || file[`thumbnail_url_${size}`] || file.file_url_preview : null;
-        } else {
-            console.log(`Submission data for submission ID: ${submission.submission_id}`, submission);
-            return submission[`thumbnail_url_${size}_noncustom`] || submission[`thumbnail_url_${size}`] || submission.file_url_preview;
+        let image = {
+            url: submission[`thumbnail_url_${size}_noncustom`] || submission[`thumbnail_url_${size}`] || submission.file_url_preview,
+            width: submission[`thumb_${size}_noncustom_x`] || submission[`thumb_${size}_x`],
+            height: submission[`thumb_${size}_noncustom_y`] || submission[`thumb_${size}_y`],
         }
+        if (page) {
+            const file = submission.files[Number(page) - 1]
+            if (!file) {
+                console.error(`Page ${page} not found for submission ID: ${submission.submission_id}`, submission);
+            }
+            image.url = file ? file[`thumbnail_url_${size}_noncustom`] || file[`thumbnail_url_${size}`] || file.file_url_preview : null;
+            image.width = file ? file[`thumb_${size}_noncustom_x`] || file[`thumb_${size}_x`] : null;
+            image.height = file ? file[`thumb_${size}_noncustom_y`] || file[`thumb_${size}_y`] : null;
+        }
+
+        const isMultiPage = submission.pagecount && submission.pagecount > 1;
+        const multiPageLip = isMultiPage ? `
+        <div title="Submission has ${submission.pagecount} pages" style="width: ${image.width}px; height: ${image.height}px; position: absolute; bottom: 0px; right: -1px; background-image: url(https://jp.ib.metapix.net/images80/overlays/multipage_large.png); background-position: bottom right; background-repeat: no-repeat;"></div>
+        <div title="Submission has ${submission.pagecount} pages" style=" position: absolute; bottom: 0px; right: 2px; color: #333333; font-size: 10pt;">+${submission.pagecount}</div>` : '';
+
+        function generateThumbnailHtml(image, page) {
+            return `
+            ${!isMultiPage ? `<img src="${image.url}" alt="Thumbnail" />` : `
+                <table style="display: inline-block;">
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div class="widget_imageFromSubmission" style="width: ${image.width}px; height: ${image.height}px; position: relative; margin: 0px auto;">
+                                    <a href="/s/${submission.submission_id}${page ? `-p${page}-` : ''}" style="border: 0px;">
+                                        <img src="${image.url}" width="${image.width}" height="${image.height}" title="${submission.title} ${page ? `[Page ${page}]` : '1'} by ${submission.username}" alt="${submission.title} ${page ? `[Page ${page}]` : '1'} by ${submission.username}" style="position: relative; border: 0px;" class="shadowedimage">
+                                        ${multiPageLip}
+                                        <div class="badge-container" style="display: grid; grid-template-columns: auto auto; gap: 4px; position: absolute; top: 5px; left: 5px;"></div>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>`}`;
+        }
+
+        return image ? generateThumbnailHtml(image, page) : null;
     }
+
 
     async function fetchAndProcessThumbnails(submissionIds) {
         if (!sid) return;
@@ -156,21 +190,20 @@
                 size = 'medium';
             }
 
-            getThumbnailUrl(submissionId, page, size).then(imgUrl => {
+            getThumbnailUrl(submissionId, page, size).then(html => {
                 const elem = document.getElementById(placeholderId);
                 if (!elem) {
                     console.error(`Element not found for placeholder ID: ${placeholderId}`);
                     return;
                 }
-                console.log(`Updating thumbnail for submission ID: ${submissionId}, page: ${page}, size: ${size}`, elem, imgUrl);
-                const lineHtml = imgUrl ? `<img src="${imgUrl}" alt="Thumbnail" />` : `<a href="https://inkbunny.net/s/${submissionId}" target="_blank">Submission ${submissionId}</a>`;
-                elem.outerHTML = lineHtml;
+                console.log(`Updating thumbnail for submission ID: ${submissionId}, page: ${page}, size: ${size}`, elem, match[0]);
+                elem.outerHTML = html;
 
                 // Update the cache with the new HTML
                 const line = match[0];
                 const lineHash = hashString(line);
                 lineHashCache.set(line, lineHash);
-                lineHashCache.set(line + '_html', lineHtml);
+                lineHashCache.set(line + '_html', html);
             });
         });
     }
