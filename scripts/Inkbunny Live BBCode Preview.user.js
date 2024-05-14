@@ -292,6 +292,65 @@
         return iconHtml;
     }
 
+    function wrapSelectedText(textarea, before, after) {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selectedText = textarea.value.substring(start, end);
+
+        let newText, newStart, newEnd;
+        const fullText = textarea.value;
+        const beforeTag = fullText.substring(start - before.length, start);
+        const afterTag = fullText.substring(end, end + after.length);
+
+        if (beforeTag === before && afterTag === after) {
+            // Remove the BBCode tags if they are already present
+            newText = selectedText;
+            textarea.setRangeText(newText, start - before.length, end + after.length, 'select');
+            newStart = start - before.length;
+            newEnd = end - before.length;
+        } else {
+            // Add the BBCode tags
+            newText = before + selectedText + after;
+            textarea.setRangeText(newText, start, end, 'select');
+            newStart = start + before.length;
+            newEnd = end + before.length;
+        }
+
+        // Update the selection range
+        textarea.setSelectionRange(newStart, newEnd);
+    }
+
+    function handleKeyDown(event) {
+        if ((event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey) {
+            const textarea = event.target;
+            switch (event.key.toLowerCase()) {
+                case 'b':
+                    event.preventDefault();
+                    wrapSelectedText(textarea, '[b]', '[/b]');
+                    break;
+                case 'i':
+                    event.preventDefault();
+                    wrapSelectedText(textarea, '[i]', '[/i]');
+                    break;
+                case 'u':
+                    event.preventDefault();
+                    wrapSelectedText(textarea, '[u]', '[/u]');
+                    break;
+                case 's':
+                    event.preventDefault();
+                    wrapSelectedText(textarea, '[s]', '[/s]');
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    // Add event listeners to the textareas
+    function addKeydownListenerToTextarea(textarea) {
+        textarea.addEventListener('keydown', handleKeyDown);
+    }
+
     // Function to create the preview area
     function createPreviewArea(textarea, referenceNode) {
         if (textarea && referenceNode) {
@@ -322,6 +381,9 @@
             previewDiv.appendChild(placeholder);
             referenceNode.parentNode.insertBefore(previewDiv, referenceNode.nextSibling);
 
+            // Add keydown event listener for BBCode shortcuts
+            addKeydownListenerToTextarea(textarea);
+
             // Event listener for live preview
             textarea.addEventListener('input', async () => {
                 if (textarea.value.trim() === '') {
@@ -339,6 +401,7 @@
             });
         }
     }
+
 
     // Run the script when the page loads
     window.addEventListener('load', () => {
