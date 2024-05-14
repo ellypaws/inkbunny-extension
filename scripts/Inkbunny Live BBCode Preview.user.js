@@ -231,6 +231,13 @@
 
     // Function to create the preview area
     function createPreviewArea(textarea, referenceNode) {
+        if (!textarea) {
+            return;
+        }
+        if (!referenceNode) {
+            console.error('Reference node not found');
+            return;
+        }
         if (textarea && referenceNode) {
             // Create the preview div
             const previewDiv = document.createElement('div');
@@ -280,7 +287,7 @@
         createPreviewArea(messageTextarea, messageReferenceNode);
 
         const commentTextarea = document.querySelector('#comment');
-        const commentReferenceNode = document.querySelector("body > div.elephant.elephant_top.elephant_bottom.elephant_d3d7cf > div.content > div:nth-child(3) > form:nth-child(8) > div:nth-child(6)");
+        const commentReferenceNode = commentTextarea ? commentTextarea.parentNode.nextElementSibling : null;
         createPreviewArea(commentTextarea, commentReferenceNode);
     });
 
