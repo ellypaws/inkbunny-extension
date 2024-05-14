@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Inkbunny Live BBCode Preview
 // @namespace    http://tampermonkey.net/
-// @version      1.9
+// @version      2.1
 // @description  Adds a live BBCode preview for the message and comment textareas on Inkbunny, including submission thumbnails and various BBCode tags
 // @author       https://github.com/ellypaws
 // @match        *://inkbunny.net/*
@@ -16,6 +16,17 @@
 
     const cachedUserIcons = {};
     const cachedSubmissions = {};
+    const lineHashCache = new Map();
+
+    function hashString(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash |= 0; // Convert to 32bit integer
+        }
+        return hash;
+    }
 
     // Prompt for SID and save it
     function promptForSid() {
@@ -116,6 +127,9 @@
     }
 
     async function fetchAndProcessThumbnails(submissionIds) {
+        if (!sid) return;
+        if (!submissionIds.size) return;
+
         const uniqueIds = [...submissionIds];
         console.log(`Fetching data for submission IDs: ${uniqueIds.join(', ')}`);
         const response = await fetch(`https://inkbunny.net/api_submissions.php?sid=${sid}&submission_ids=${uniqueIds.join(',')}`);
@@ -128,6 +142,9 @@
     }
 
     function updateThumbnails(placeholderMap) {
+        if (!sid) return;
+        if (!placeholderMap.size) return;
+
         placeholderMap.forEach((match, placeholderId) => {
             const sizePrefix = match[1];
             const submissionId = match[2];
@@ -146,101 +163,113 @@
                     return;
                 }
                 console.log(`Updating thumbnail for submission ID: ${submissionId}, page: ${page}, size: ${size}`, elem, imgUrl);
-                if (imgUrl) {
-                    const imgTag = `<img src="${imgUrl}" alt="Thumbnail" />`;
-                    elem.outerHTML = imgTag;
-                } else {
-                    elem.outerHTML = `<a href="https://inkbunny.net/s/${submissionId}" target="_blank">Submission ${submissionId}</a>`;
-                }
+                const lineHtml = imgUrl ? `<img src="${imgUrl}" alt="Thumbnail" />` : `<a href="https://inkbunny.net/s/${submissionId}" target="_blank">Submission ${submissionId}</a>`;
+                elem.outerHTML = lineHtml;
+
+                // Update the cache with the new HTML
+                const line = match[0];
+                const lineHash = hashString(line);
+                lineHashCache.set(line, lineHash);
+                lineHashCache.set(line + '_html', lineHtml);
             });
         });
     }
 
     // Function to convert BBCode to HTML
     async function bbcodeToHtml(bbcode) {
-        // Replace plain URLs with [url] BBCode
-        const urlRegex = /(?<!\[url=)(https?:\/\/[^\s]+)/g;
-        bbcode = bbcode.replace(urlRegex, '[url=$1]$1[/url]');
-
-        // Replace ib! with [name] BBCode
-        const ibName = /ib!(\w+)/g;
-        bbcode = bbcode.replace(ibName, '[name]$1[/name]');
-
-        // Define BBCode to HTML replacements
-        const bbTagReplacements = {
-            '<': '&lt;',
-            '>': '&gt;',
-            '\n': '<br>',
-            '\\[b\\](.*?)\\[/b\\]': '<strong>$1</strong>',
-            '\\[i\\](.*?)\\[/i\\]': '<em>$1</em>',
-            '\\[u\\](.*?)\\[/u\\]': '<span class="underline">$1</span>',
-            '\\[s\\](.*?)\\[/s\\]': '<span class="strikethrough">$1</span>',
-            '\\[t\\](.*?)\\[/t\\]': '<span class="font_title">$1</span>',
-            '\\[left\\](.*?)\\[/left\\]': '<div class="align_left">$1</div>',
-            '\\[center\\](.*?)\\[/center\\]': '<div class="align_center">$1</div>',
-            '\\[right\\](.*?)\\[/right\\]': '<div class="align_right">$1</div>',
-            '\\[q\\](.*?)\\[/q\\]': '<div class="bbcode_quote"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="bbcode_quote_symbol" rowspan="2">"</td><td class="bbcode_quote_quote">$1</td></tr></tbody></table></div>',
-            '\\[q=(.*?)\\](.*?)\\[/q\\]': '<div class="bbcode_quote"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="bbcode_quote_symbol" rowspan="2">"</td><td class="bbcode_quote_author">$1 wrote:</td></tr><tr><td class="bbcode_quote_quote">$2</td></tr></tbody></table></div>',
-            '\\[url=(.*?)\\](.*?)\\[/url\\]': '<a href="$1" rel="nofollow">$2</a>',
-            '\\[url\\](.*?)\\[/url\\]': '<a href="$1" rel="nofollow">$1</a>',
-            '\\[color=(.*?)\\](.*?)\\[/color\\]': '<span style="color: $1;">$2</span>',
-            '\\[name\\](.*?)\\[/name\\]': '<a class="widget_userNameSmall watching" href="/$1">$1</a>',
-            '\\[icon\\](.*?)\\[/icon\\]': async (match, username) => createIcon(username),
-            '\\[iconname\\](.*?)\\[/iconname\\]': async (match, username) => createIcon(username, true),
-            '@(\\w+)': async (match, username) => createIcon(username, true),
-            '\\[code\\]([\\s\\S]*?)\\[/code\\]': (match, code) => `<pre>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`,
-            '\\[(da|fa|sf|w)\\](.*?)\\[/\\1\\]': (match, site, username) => createSocialLink(site, username),
-            '(da|fa|sf|w)!(\\w+)': (match, site, username) => createSocialLink(site, username)
-        };
-
-        // Apply BBCode to HTML replacements
-        for (const [pattern, replacement] of Object.entries(bbTagReplacements)) {
-            if (typeof replacement === 'function') {
-                const matches = [...bbcode.matchAll(new RegExp(pattern, 'g'))];
-                for (const match of matches) {
-                    const replacementHtml = await replacement(...match);
-                    bbcode = bbcode.replace(match[0], replacementHtml);
-                }
-            } else {
-                bbcode = bbcode.replace(new RegExp(pattern, 'g'), replacement);
-            }
-        }
-
-        // Collect unique submission IDs
-        const submissionIds = new Set();
-        const thumbRegex = /\[(small|medium|large|huge)thumb\](\d+)(?:,(\d+))?\[\/\1thumb\]/g;
-        const shortcutRegex = /#(S|M|L|H)(\d+)(?:,(\d+))?/g;
-
-        const thumbMatches = [...bbcode.matchAll(thumbRegex)];
-        const shortcutMatches = [...bbcode.matchAll(shortcutRegex)];
-
-        thumbMatches.forEach(match => submissionIds.add(match[2]));
-        shortcutMatches.forEach(match => submissionIds.add(match[2]));
-
+        const lines = bbcode.split('\n');
+        const resultLines = [];
         const placeholderMap = new Map();
 
-        // Create placeholders for thumbnails
-        bbcode = bbcode.replace(thumbRegex, '<div id="$&">$&</div>');
-        bbcode = bbcode.replace(shortcutRegex, '<div id="$&">$&</div>');
+        for (const line of lines) {
+            const lineHash = hashString(line);
 
-        // Store matches in the map
-        thumbMatches.forEach(match => {
-            const placeholderId = match[0];
-            placeholderMap.set(placeholderId, match);
-        });
+            if (lineHashCache.get(line) === lineHash) {
+                // If line hash matches cached hash, use the cached result
+                resultLines.push(lineHashCache.get(line + '_html'));
+                continue;
+            }
 
-        shortcutMatches.forEach(match => {
-            const placeholderId = match[0];
-            placeholderMap.set(placeholderId, match);
-        });
+            // Replace plain URLs with [url] BBCode
+            const urlRegex = /(?<!\[url=)(https?:\/\/[^\s]+)/g;
+            let lineHtml = line.replace(urlRegex, '[url=$1]$1[/url]');
+
+            // Replace ib! with [name] BBCode
+            const ibName = /ib!(\w+)/g;
+            lineHtml = lineHtml.replace(ibName, '[name]$1[/name]');
+
+            // Define BBCode to HTML replacements
+            const bbTagReplacements = {
+                '<': '&lt;',
+                '>': '&gt;',
+                '\\[b\\](.*?)\\[/b\\]': '<strong>$1</strong>',
+                '\\[i\\](.*?)\\[/i\\]': '<em>$1</em>',
+                '\\[u\\](.*?)\\[/u\\]': '<span class="underline">$1</span>',
+                '\\[s\\](.*?)\\[/s\\]': '<span class="strikethrough">$1</span>',
+                '\\[t\\](.*?)\\[/t\\]': '<span class="font_title">$1</span>',
+                '\\[left\\](.*?)\\[/left\\]': '<div class="align_left">$1</div>',
+                '\\[center\\](.*?)\\[/center\\]': '<div class="align_center">$1</div>',
+                '\\[right\\](.*?)\\[/right\\]': '<div class="align_right">$1</div>',
+                '\\[q\\](.*?)\\[/q\\]': '<div class="bbcode_quote"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="bbcode_quote_symbol" rowspan="2">"</td><td class="bbcode_quote_quote">$1</td></tr></tbody></table></div>',
+                '\\[q=(.*?)\\](.*?)\\[/q\\]': '<div class="bbcode_quote"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="bbcode_quote_symbol" rowspan="2">"</td><td class="bbcode_quote_author">$1 wrote:</td></tr><tr><td class="bbcode_quote_quote">$2</td></tr></tbody></table></div>',
+                '\\[url=(.*?)\\](.*?)\\[/url\\]': '<a href="$1" rel="nofollow">$2</a>',
+                '\\[url\\](.*?)\\[/url\\]': '<a href="$1" rel="nofollow">$1</a>',
+                '\\[color=(.*?)\\](.*?)\\[/color\\]': '<span style="color: $1;">$2</span>',
+                '\\[name\\](.*?)\\[/name\\]': '<a class="widget_userNameSmall watching" href="/$1">$1</a>',
+                '\\[icon\\](.*?)\\[/icon\\]': async (match, username) => createIcon(username),
+                '\\[iconname\\](.*?)\\[/iconname\\]': async (match, username) => createIcon(username, true),
+                '@(\\w+)': async (match, username) => createIcon(username, true),
+                '\\[code\\]([\\s\\S]*?)\\[/code\\]': (match, code) => `<pre>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`,
+                '\\[(da|fa|sf|w)\\](.*?)\\[/\\1\\]': (match, site, username) => createSocialLink(site, username),
+                '(da|fa|sf|w)!(\\w+)': (match, site, username) => createSocialLink(site, username)
+            };
+
+            // Apply BBCode to HTML replacements
+            for (const [pattern, replacement] of Object.entries(bbTagReplacements)) {
+                if (typeof replacement === 'function') {
+                    const matches = [...lineHtml.matchAll(new RegExp(pattern, 'g'))];
+                    for (const match of matches) {
+                        const replacementHtml = await replacement(...match);
+                        lineHtml = lineHtml.replace(match[0], replacementHtml);
+                    }
+                } else {
+                    lineHtml = lineHtml.replace(new RegExp(pattern, 'g'), replacement);
+                }
+            }
+
+            // Collect unique submission IDs for thumbnails
+            const thumbRegex = /\[(small|medium|large|huge)thumb\](\d+)(?:,(\d+))?\[\/\1thumb\]/g;
+            const shortcutRegex = /#(S|M|L|H)(\d+)(?:,(\d+))?/g;
+            const thumbMatches = [...lineHtml.matchAll(thumbRegex)];
+            const shortcutMatches = [...lineHtml.matchAll(shortcutRegex)];
+
+            thumbMatches.forEach(match => {
+                const placeholderId = match[0];
+                placeholderMap.set(placeholderId, match);
+                lineHtml = lineHtml.replace(match[0], `<div id="${placeholderId}">${placeholderId}</div>`);
+            });
+
+            shortcutMatches.forEach(match => {
+                const placeholderId = match[0];
+                placeholderMap.set(placeholderId, match);
+                lineHtml = lineHtml.replace(match[0], `<div id="${placeholderId}">${placeholderId}</div>`);
+            });
+
+            // Store the hash and the processed HTML in the cache
+            lineHashCache.set(line, lineHash);
+            lineHashCache.set(line + '_html', lineHtml);
+
+            resultLines.push(lineHtml);
+        }
 
         // Fetch and process thumbnails
+        const submissionIds = new Set([...placeholderMap.values()].map(match => match[2]));
         if (sid) {
             await fetchAndProcessThumbnails(submissionIds);
         }
 
-        // Return the processed BBCode with placeholders
-        return {bbcode, placeholderMap};
+        // Return the processed BBCode with placeholders joined by <br>
+        return {bbcode: resultLines.join('<br>'), placeholderMap};
     }
 
     // Function to create the icon HTML
