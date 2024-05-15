@@ -412,21 +412,29 @@
 
     // Function to create the preview area
     function createPreviewArea(textarea, referenceNode) {
-        if (textarea && referenceNode) {
-            // Create the preview div
-            const previewDiv = document.createElement('div');
-            previewDiv.id = 'bbcode-preview';
-            previewDiv.style.height = 'auto';
-            previewDiv.style.minHeight = '120px';
-            previewDiv.style.marginTop = '10px';
-            previewDiv.style.padding = '15px';
-            previewDiv.style.border = '1px solid #cccccc';
-            previewDiv.style.borderRadius = '15px';
-            previewDiv.style.boxShadow = '0px 0px 10px rgba(0, 0, 0, 0.15)';
-            previewDiv.style.fontFamily = 'Arial';
-            previewDiv.style.fontSize = '10pt';
-            previewDiv.style.backgroundColor = '#f9f9f9';
-            previewDiv.style.color = '#000';
+        if (!textarea) {
+            console.error('Textarea not found');
+            return;
+        }
+        if (!referenceNode) {
+            console.error('Reference node not found');
+            return;
+        }
+
+        // Create the preview div
+        const previewDiv = document.createElement('div');
+        previewDiv.id = 'bbcode-preview';
+        previewDiv.style.height = 'auto';
+        previewDiv.style.minHeight = '120px';
+        previewDiv.style.marginTop = '10px';
+        previewDiv.style.padding = '15px';
+        previewDiv.style.border = '1px solid #cccccc';
+        previewDiv.style.borderRadius = '15px';
+        previewDiv.style.boxShadow = '0px 0px 10px rgba(0, 0, 0, 0.15)';
+        previewDiv.style.fontFamily = 'Arial';
+        previewDiv.style.fontSize = '10pt';
+        previewDiv.style.backgroundColor = '#f9f9f9';
+        previewDiv.style.color = '#000';
 
         // Create the placeholder text
         const placeholder = document.createElement('div');
