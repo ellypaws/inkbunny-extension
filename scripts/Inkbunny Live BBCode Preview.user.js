@@ -226,6 +226,63 @@
     const thumbRegex = /\[(small|medium|large|huge)thumb\](\d+)(?:,(\d+))?\[\/\1thumb\]/g;
     const shortcutRegex = /#(S|M|L|H)(\d+)(?:,(\d+))?/g;
 
+    const bbTagReplacements = [
+        {pattern: new RegExp(/</g), replacement: '&lt;'},
+        {pattern: new RegExp(/>/g), replacement: '&gt;'},
+        {pattern: new RegExp(/\[b]/g), replacement: '<strong>'},
+        {pattern: new RegExp(/\[\/b]/g), replacement: '</strong>'},
+        {pattern: new RegExp(/\[i]/g), replacement: '<em>'},
+        {pattern: new RegExp(/\[\/i]/g), replacement: '</em>'},
+        {pattern: new RegExp(/\[u]/g), replacement: '<span class="underline">'},
+        {pattern: new RegExp(/\[\/u]/g), replacement: '</span>'},
+        {pattern: new RegExp(/\[s]/g), replacement: '<span class="strikethrough">'},
+        {pattern: new RegExp(/\[\/s]/g), replacement: '</span>'},
+        {pattern: new RegExp(/\[t]/g), replacement: '<span class="font_title">'},
+        {pattern: new RegExp(/\[\/t]/g), replacement: '</span>'},
+        {pattern: new RegExp(/\[left]/g), replacement: '<div class="align_left">'},
+        {pattern: new RegExp(/\[\/left]/g), replacement: '</div>'},
+        {pattern: new RegExp(/\[center]/g), replacement: '<div class="align_center">'},
+        {pattern: new RegExp(/\[\/center]/g), replacement: '</div>'},
+        {pattern: new RegExp(/\[right]/g), replacement: '<div class="align_right">'},
+        {pattern: new RegExp(/\[\/right]/g), replacement: '</div>'},
+        {pattern: new RegExp(/\[color=(.*?)]/g), replacement: '<span style="color: $1;">'},
+        {pattern: new RegExp(/\[\/color]/g), replacement: '</span>'},
+        {
+            pattern: new RegExp(/\[q]/g),
+            replacement: '<div class="bbcode_quote"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="bbcode_quote_symbol" rowspan="2">"</td><td class="bbcode_quote_quote">'
+        },
+        {
+            pattern: new RegExp(/\[q=(.*?)]/g),
+            replacement: '<div class="bbcode_quote"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="bbcode_quote_symbol" rowspan="2">"</td><td class="bbcode_quote_author">$1 wrote:</td></tr><tr><td class="bbcode_quote_quote">'
+        },
+        {pattern: new RegExp(/\[\/q]/g), replacement: '</td></tr></tbody></table></div>'},
+        {pattern: new RegExp(/(?<!\[url=)(https?:\/\/\S+)/g), replacement: '<a href="$1" rel="nofollow">$1</a>'},
+        {pattern: new RegExp(/\[url=(.*?)](.*?)\[\/url]/g), replacement: '<a href="$1" rel="nofollow">$2</a>'},
+        {pattern: new RegExp(/\[url](.*?)\[\/url]/g), replacement: '<a href="$1" rel="nofollow">$1</a>'},
+        {
+            pattern: new RegExp(/\[name](.*?)\[\/name]/g),
+            replacement: '<a class="widget_userNameSmall watching" href="/$1">$1</a>'
+        },
+        {pattern: new RegExp(/\[icon](.*?)\[\/icon]/g), replacement: async (match, username) => createIcon(username)},
+        {
+            pattern: new RegExp(/\[iconname](.*?)\[\/iconname]/g),
+            replacement: async (match, username) => createIcon(username, true)
+        },
+        {pattern: new RegExp(/@(\w+)/g), replacement: async (match, username) => createIcon(username, true)},
+        {
+            pattern: new RegExp(/\[code]([^\[]*?)\[\/code]/g),
+            replacement: (match, code) => `<pre>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`
+        },
+        {
+            pattern: new RegExp(/\[(da|fa|sf|w)](.*?)\[\/\1]/g),
+            replacement: (match, site, username) => createSocialLink(site, username)
+        },
+        {
+            pattern: new RegExp(/(da|fa|sf|w)!(\w+)/g),
+            replacement: (match, site, username) => createSocialLink(site, username)
+        }
+    ];
+
     // Function to convert BBCode to HTML
     async function bbcodeToHtml(bbcode) {
         const lines = bbcode.split('\n');
@@ -248,42 +305,16 @@
             const ibName = /ib!(\w+)/g;
             lineHtml = lineHtml.replace(ibName, '[name]$1[/name]');
 
-            // Define BBCode to HTML replacements
-            const bbTagReplacements = {
-                '<': '&lt;',
-                '>': '&gt;',
-                '\\[b\\](.*?)\\[/b\\]': '<strong>$1</strong>',
-                '\\[i\\](.*?)\\[/i\\]': '<em>$1</em>',
-                '\\[u\\](.*?)\\[/u\\]': '<span class="underline">$1</span>',
-                '\\[s\\](.*?)\\[/s\\]': '<span class="strikethrough">$1</span>',
-                '\\[t\\](.*?)\\[/t\\]': '<span class="font_title">$1</span>',
-                '\\[left\\](.*?)\\[/left\\]': '<div class="align_left">$1</div>',
-                '\\[center\\](.*?)\\[/center\\]': '<div class="align_center">$1</div>',
-                '\\[right\\](.*?)\\[/right\\]': '<div class="align_right">$1</div>',
-                '\\[q\\](.*?)\\[/q\\]': '<div class="bbcode_quote"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="bbcode_quote_symbol" rowspan="2">"</td><td class="bbcode_quote_quote">$1</td></tr></tbody></table></div>',
-                '\\[q=(.*?)\\](.*?)\\[/q\\]': '<div class="bbcode_quote"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="bbcode_quote_symbol" rowspan="2">"</td><td class="bbcode_quote_author">$1 wrote:</td></tr><tr><td class="bbcode_quote_quote">$2</td></tr></tbody></table></div>',
-                '\\[url=(.*?)\\](.*?)\\[/url\\]': '<a href="$1" rel="nofollow">$2</a>',
-                '\\[url\\](.*?)\\[/url\\]': '<a href="$1" rel="nofollow">$1</a>',
-                '\\[color=(.*?)\\](.*?)\\[/color\\]': '<span style="color: $1;">$2</span>',
-                '\\[name\\](.*?)\\[/name\\]': '<a class="widget_userNameSmall watching" href="/$1">$1</a>',
-                '\\[icon\\](.*?)\\[/icon\\]': async (match, username) => createIcon(username),
-                '\\[iconname\\](.*?)\\[/iconname\\]': async (match, username) => createIcon(username, true),
-                '@(\\w+)': async (match, username) => createIcon(username, true),
-                '\\[code\\]([\\s\\S]*?)\\[/code\\]': (match, code) => `<pre>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`,
-                '\\[(da|fa|sf|w)\\](.*?)\\[/\\1\\]': (match, site, username) => createSocialLink(site, username),
-                '(da|fa|sf|w)!(\\w+)': (match, site, username) => createSocialLink(site, username)
-            };
-
             // Apply BBCode to HTML replacements
-            for (const [pattern, replacement] of Object.entries(bbTagReplacements)) {
+            for (const {pattern, replacement} of bbTagReplacements) {
                 if (typeof replacement === 'function') {
-                    const matches = [...lineHtml.matchAll(new RegExp(pattern, 'g'))];
+                    const matches = [...lineHtml.matchAll(pattern)];
                     for (const match of matches) {
                         const replacementHtml = await replacement(...match);
                         lineHtml = lineHtml.replace(match[0], replacementHtml);
                     }
                 } else {
-                    lineHtml = lineHtml.replace(new RegExp(pattern, 'g'), replacement);
+                    lineHtml = lineHtml.replace(pattern, replacement);
                 }
             }
 
@@ -397,37 +428,36 @@
             previewDiv.style.backgroundColor = '#f9f9f9';
             previewDiv.style.color = '#000';
 
-            // Create the placeholder text
-            const placeholder = document.createElement('div');
-            placeholder.id = 'bbcode-placeholder';
-            placeholder.style.color = '#555';
-            placeholder.style.textAlign = 'center';
-            placeholder.style.lineHeight = '120px'; // Center vertically
-            placeholder.innerText = 'Start typing to preview';
+        // Create the placeholder text
+        const placeholder = document.createElement('div');
+        placeholder.id = 'bbcode-placeholder';
+        placeholder.style.color = '#555';
+        placeholder.style.textAlign = 'center';
+        placeholder.style.lineHeight = '120px'; // Center vertically
+        placeholder.innerText = 'Start typing to preview';
 
-            // Insert the preview div after the reference node
-            previewDiv.appendChild(placeholder);
-            referenceNode.parentNode.insertBefore(previewDiv, referenceNode.nextSibling);
+        // Insert the preview div after the reference node
+        previewDiv.appendChild(placeholder);
+        referenceNode.parentNode.insertBefore(previewDiv, referenceNode.nextSibling);
 
-            // Add keydown event listener for BBCode shortcuts
-            addKeydownListenerToTextarea(textarea);
+        // Add keydown event listener for BBCode shortcuts
+        addKeydownListenerToTextarea(textarea);
 
-            // Event listener for live preview
-            textarea.addEventListener('input', async () => {
-                if (textarea.value.trim() === '') {
-                    placeholder.style.display = 'block';
-                    previewDiv.innerHTML = '';
-                    previewDiv.appendChild(placeholder);
-                } else {
-                    placeholder.style.display = 'none';
-                    const bbcode = await bbcodeToHtml(textarea.value);
-                    previewDiv.innerHTML = bbcode;
+        // Event listener for live preview
+        textarea.addEventListener('input', async () => {
+            if (textarea.value.trim() === '') {
+                placeholder.style.display = 'block';
+                previewDiv.innerHTML = '';
+                previewDiv.appendChild(placeholder);
+            } else {
+                placeholder.style.display = 'none';
+                const bbcode = await bbcodeToHtml(textarea.value);
+                previewDiv.innerHTML = bbcode;
 
-                    // Call updateThumbnails after setting innerHTML
-                    await updateThumbnails(previewDiv);
-                }
-            });
-        }
+                // Call updateThumbnails after setting innerHTML
+                await updateThumbnails(previewDiv);
+            }
+        });
     }
 
 
