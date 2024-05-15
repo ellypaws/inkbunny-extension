@@ -201,6 +201,9 @@
                     original: match[0],
                     replaced: original
                 });
+
+                lines[index] = line;
+                previewDiv.innerHTML = lines.join('<br>');
             }
 
             await Promise.all(thumbMatches.map(match => processMatch(match)));
@@ -213,11 +216,9 @@
             return line;
         });
 
-        const updatedLines = await Promise.all(promises);
+        await Promise.all(promises);
 
-        if (processed.length) {
-            previewDiv.innerHTML = updatedLines.join('<br>');
-        } else {
+        if (!processed.length) {
             console.log('No thumbnails to update');
         }
     }
