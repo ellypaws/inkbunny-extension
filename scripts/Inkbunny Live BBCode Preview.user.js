@@ -437,6 +437,10 @@
         const messageReferenceNode = messageTextarea ? messageTextarea.nextSibling : null;
         createPreviewArea(messageTextarea, messageReferenceNode);
 
+        const descriptionTextarea = document.querySelector('#desc');
+        const descriptionReferenceNode = descriptionTextarea ? descriptionTextarea.nextSibling : null;
+        createPreviewArea(descriptionTextarea, descriptionReferenceNode);
+
         const commentTextarea = document.querySelector('#comment');
         const commentReferenceNode = commentTextarea ? commentTextarea.parentNode.nextElementSibling : null;
         createPreviewArea(commentTextarea, commentReferenceNode);
