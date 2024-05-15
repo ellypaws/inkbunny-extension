@@ -216,7 +216,6 @@
         const updatedLines = await Promise.all(promises);
 
         if (processed.length) {
-            console.log('Updating thumbnails', processed, updatedLines);
             previewDiv.innerHTML = updatedLines.join('<br>');
         } else {
             console.log('No thumbnails to update');
