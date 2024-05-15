@@ -473,14 +473,14 @@
     window.addEventListener('load', () => {
         const messageTextarea = document.querySelector('#message');
         if (messageTextarea) {
-            const messageReferenceNode = messageTextarea.nextSibling;
+            const messageReferenceNode = messageTextarea.nextSiblings()[1]
             createPreviewArea(messageTextarea, messageReferenceNode);
             return;
         }
 
         const descriptionTextarea = document.querySelector('#desc');
         if (descriptionTextarea) {
-            const descriptionReferenceNode = descriptionTextarea.nextSibling;
+            const descriptionReferenceNode = descriptionTextarea.nextSiblings()[1]
             createPreviewArea(descriptionTextarea, descriptionReferenceNode);
             return;
         }
