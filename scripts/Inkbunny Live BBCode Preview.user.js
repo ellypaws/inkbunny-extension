@@ -99,22 +99,31 @@
     async function getThumbnailUrl(submissionId, page, size) {
         if (!sid) return null;
 
-        if (cachedSubmissions[submissionId]) {
+        if (cachedSubmissions[submissionId] && cachedSubmissions[submissionId].html) {
             console.log(`Using cached data for submission ID: ${submissionId}`);
-            return getThumbnailFromCache(cachedSubmissions[submissionId], page, size);
+            return cachedSubmissions[submissionId].html;
         }
 
         console.log(`Fetching data for submission ID: ${submissionId}`);
         const response = await fetch(`https://inkbunny.net/api_submissions.php?sid=${sid}&submission_ids=${submissionId}`);
         const data = await response.json();
-        cachedSubmissions[submissionId] = data.submissions.find(sub => sub.submission_id == submissionId);
-        console.log(`Data for submission ID: ${submissionId}`, cachedSubmissions[submissionId]);
+        for (const submission of data.submissions) {
+            console.log(`Processing submission ID: ${submission.submission_id}`, submission, page, size);
+            cachedSubmissions[submission.submission_id] = {
+                ...submission,
+                html: processSubmission(submission, page, size)
+            }
+        }
 
-        return getThumbnailFromCache(cachedSubmissions[submissionId], page, size);
+        return cachedSubmissions[submissionId].html;
     }
 
-    function getThumbnailFromCache(submission, page, size) {
-        if (!submission) return null;
+    function processSubmission(submission, page, size) {
+        if (!submission) {
+            console.error(`Submission not found for ID: ${submissionId}`);
+            return null;
+        }
+        console.log(`Processing submission ID: ${submission.submission_id}`, submission, page, size);
 
         let image = {
             url: submission[`thumbnail_url_${size}_noncustom`] || submission[`thumbnail_url_${size}`] || submission.file_url_preview,
@@ -191,6 +200,10 @@
             }
 
             getThumbnailUrl(submissionId, page, size).then(html => {
+                if (!html) {
+                    console.error(`Thumbnail not found for submission ID: ${submissionId}, page: ${page}, size: ${size}`);
+                    return;
+                }
                 const elem = document.getElementById(placeholderId);
                 if (!elem) {
                     console.error(`Element not found for placeholder ID: ${placeholderId}`);
