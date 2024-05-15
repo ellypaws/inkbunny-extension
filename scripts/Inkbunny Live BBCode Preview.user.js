@@ -96,26 +96,24 @@
                 </a><a title="${username} on ${siteData.title}" rel="nofollow" href="${siteData.url}">${username}</a>`;
     }
 
-    async function getThumbnailUrl(submissionId, page, size) {
+    async function fetchThumbnail(submissionId, page, size) {
         if (!sid) return null;
 
-        if (cachedSubmissions[submissionId] && cachedSubmissions[submissionId].html) {
+        if (cachedSubmissions[submissionId]) {
             console.log(`Using cached data for submission ID: ${submissionId}`);
-            return cachedSubmissions[submissionId].html;
+            return cachedSubmissions[submissionId];
         }
 
         console.log(`Fetching data for submission ID: ${submissionId}`);
         const response = await fetch(`https://inkbunny.net/api_submissions.php?sid=${sid}&submission_ids=${submissionId}`);
         const data = await response.json();
         for (const submission of data.submissions) {
-            console.log(`Processing submission ID: ${submission.submission_id}`, submission, page, size);
-            cachedSubmissions[submission.submission_id] = {
-                ...submission,
-                html: processSubmission(submission, page, size)
-            }
+            const processed = processSubmission(submission, page, size)
+            cachedSubmissions[submission.submission_id] = processed
+            console.log(`Processed submission ID: ${submission.submission_id}`, {submission: submission, html: processed});
         }
 
-        return cachedSubmissions[submissionId].html;
+        return cachedSubmissions[submissionId];
     }
 
     function processSubmission(submission, page, size) {
@@ -123,7 +121,6 @@
             console.error(`Submission not found for ID: ${submissionId}`);
             return null;
         }
-        console.log(`Processing submission ID: ${submission.submission_id}`, submission, page, size);
 
         let image = {
             url: submission[`thumbnail_url_${size}_noncustom`] || submission[`thumbnail_url_${size}`] || submission.file_url_preview,
@@ -169,63 +166,69 @@
     }
 
 
-    async function fetchAndProcessThumbnails(submissionIds) {
+    async function updateThumbnails(previewDiv) {
         if (!sid) return;
-        if (!submissionIds.size) return;
 
-        const uniqueIds = [...submissionIds];
-        console.log(`Fetching data for submission IDs: ${uniqueIds.join(', ')}`);
-        const response = await fetch(`https://inkbunny.net/api_submissions.php?sid=${sid}&submission_ids=${uniqueIds.join(',')}`);
-        const data = await response.json();
+        const lines = previewDiv.innerHTML.split('<br>');
+        const processed = [];
+        const sizeMap = {S: 'small', M: 'medium', L: 'large', H: 'huge'};
 
-        uniqueIds.forEach(id => {
-            cachedSubmissions[id] = data.submissions.find(sub => sub.submission_id == id);
-            console.log(`Data for submission ID: ${id}`, cachedSubmissions[id]);
-        });
-    }
+        const promises = lines.map(async (line, index) => {
+            const original = line;
+            const thumbMatches = [...line.matchAll(thumbRegex)];
+            const shortcutMatches = [...line.matchAll(shortcutRegex)];
 
-    function updateThumbnails(placeholderMap) {
-        if (!sid) return;
-        if (!placeholderMap.size) return;
+            async function processMatch(match) {
+                const sizePrefix = match[1];
+                const submissionId = match[2];
+                const page = match[3];
+                let size = sizeMap[sizePrefix.toUpperCase()] || sizePrefix;
+                // replace small to medium as that's defunct
+                if (size === 'small') {
+                    size = 'medium';
+                }
 
-        placeholderMap.forEach((match, placeholderId) => {
-            const sizePrefix = match[1];
-            const submissionId = match[2];
-            const page = match[3];
-            const sizeMap = {S: 'small', M: 'medium', L: 'large', H: 'huge'};
-            let size = sizeMap[sizePrefix.toUpperCase()] || sizePrefix;
-            // replace small to medium as that's defunct
-            if (size === 'small') {
-                size = 'medium';
+                const html = await fetchThumbnail(submissionId, page, size);
+                if (!html) {
+                    console.error(`No thumbnail html returned for submission ID: ${submissionId}`);
+                    return;
+                }
+                line = line.replace(match[0], html);
+
+                processed.push({
+                    line: index,
+                    original: match[0],
+                    replaced: original
+                });
             }
 
-            getThumbnailUrl(submissionId, page, size).then(html => {
-                if (!html) {
-                    console.error(`Thumbnail not found for submission ID: ${submissionId}, page: ${page}, size: ${size}`);
-                    return;
-                }
-                const elem = document.getElementById(placeholderId);
-                if (!elem) {
-                    console.error(`Element not found for placeholder ID: ${placeholderId}`);
-                    return;
-                }
-                console.log(`Updating thumbnail for submission ID: ${submissionId}, page: ${page}, size: ${size}`, elem, match[0]);
-                elem.outerHTML = html;
+            await Promise.all(thumbMatches.map(match => processMatch(match)));
+            await Promise.all(shortcutMatches.map(match => processMatch(match)));
 
-                // Update the cache with the new HTML
-                const line = match[0];
-                const lineHash = hashString(line);
-                lineHashCache.set(line, lineHash);
-                lineHashCache.set(line + '_html', html);
-            });
+            const lineHash = hashString(original);
+            lineHashCache.set(original, lineHash);
+            lineHashCache.set(original + '_html', line);
+
+            return line;
         });
+
+        const updatedLines = await Promise.all(promises);
+
+        if (processed.length) {
+            console.log('Updating thumbnails', processed, updatedLines);
+            previewDiv.innerHTML = updatedLines.join('<br>');
+        } else {
+            console.log('No thumbnails to update');
+        }
     }
+
+    const thumbRegex = /\[(small|medium|large|huge)thumb\](\d+)(?:,(\d+))?\[\/\1thumb\]/g;
+    const shortcutRegex = /#(S|M|L|H)(\d+)(?:,(\d+))?/g;
 
     // Function to convert BBCode to HTML
     async function bbcodeToHtml(bbcode) {
         const lines = bbcode.split('\n');
         const resultLines = [];
-        const placeholderMap = new Map();
 
         for (const line of lines) {
             const lineHash = hashString(line);
@@ -283,24 +286,6 @@
                 }
             }
 
-            // Collect unique submission IDs for thumbnails
-            const thumbRegex = /\[(small|medium|large|huge)thumb\](\d+)(?:,(\d+))?\[\/\1thumb\]/g;
-            const shortcutRegex = /#(S|M|L|H)(\d+)(?:,(\d+))?/g;
-            const thumbMatches = [...lineHtml.matchAll(thumbRegex)];
-            const shortcutMatches = [...lineHtml.matchAll(shortcutRegex)];
-
-            thumbMatches.forEach(match => {
-                const placeholderId = match[0];
-                placeholderMap.set(placeholderId, match);
-                lineHtml = lineHtml.replace(match[0], `<div id="${placeholderId}">${placeholderId}</div>`);
-            });
-
-            shortcutMatches.forEach(match => {
-                const placeholderId = match[0];
-                placeholderMap.set(placeholderId, match);
-                lineHtml = lineHtml.replace(match[0], `<div id="${placeholderId}">${placeholderId}</div>`);
-            });
-
             // Store the hash and the processed HTML in the cache
             lineHashCache.set(line, lineHash);
             lineHashCache.set(line + '_html', lineHtml);
@@ -308,14 +293,8 @@
             resultLines.push(lineHtml);
         }
 
-        // Fetch and process thumbnails
-        const submissionIds = new Set([...placeholderMap.values()].map(match => match[2]));
-        if (sid) {
-            await fetchAndProcessThumbnails(submissionIds);
-        }
-
         // Return the processed BBCode with placeholders joined by <br>
-        return {bbcode: resultLines.join('<br>'), placeholderMap};
+        return resultLines.join('<br>');
     }
 
     // Function to create the icon HTML
@@ -440,11 +419,11 @@
                     previewDiv.appendChild(placeholder);
                 } else {
                     placeholder.style.display = 'none';
-                    const {bbcode, placeholderMap} = await bbcodeToHtml(textarea.value);
+                    const bbcode = await bbcodeToHtml(textarea.value);
                     previewDiv.innerHTML = bbcode;
 
                     // Call updateThumbnails after setting innerHTML
-                    updateThumbnails(placeholderMap);
+                    await updateThumbnails(previewDiv);
                 }
             });
         }
