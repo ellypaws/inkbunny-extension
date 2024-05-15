@@ -99,9 +99,10 @@
     async function fetchThumbnail(submissionId, page, size) {
         if (!sid) return null;
 
-        if (cachedSubmissions[submissionId]) {
+        const key = `${submissionId}-${page ? page : '1'}-${size}`;
+        if (cachedSubmissions[key]) {
             console.log(`Using cached data for submission ID: ${submissionId}`);
-            return cachedSubmissions[submissionId];
+            return cachedSubmissions[key];
         }
 
         console.log(`Fetching data for submission ID: ${submissionId}`);
@@ -109,11 +110,11 @@
         const data = await response.json();
         for (const submission of data.submissions) {
             const processed = processSubmission(submission, page, size)
-            cachedSubmissions[submission.submission_id] = processed
-            console.log(`Processed submission ID: ${submission.submission_id}`, {submission: submission, html: processed});
+            cachedSubmissions[key] = processed;
+            console.log(`Processed ${key}:`, {submission: submission, html: processed});
         }
 
-        return cachedSubmissions[submissionId];
+        return cachedSubmissions[key];
     }
 
     function processSubmission(submission, page, size) {
