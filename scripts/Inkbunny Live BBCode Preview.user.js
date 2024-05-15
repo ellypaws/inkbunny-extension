@@ -435,21 +435,22 @@
     window.addEventListener('load', () => {
         const messageTextarea = document.querySelector('#message');
         if (messageTextarea) {
-            const messageReferenceNode = messageTextarea ? messageTextarea.nextSibling : null;
+            const messageReferenceNode = messageTextarea.nextSibling;
             createPreviewArea(messageTextarea, messageReferenceNode);
             return;
         }
 
         const descriptionTextarea = document.querySelector('#desc');
         if (descriptionTextarea) {
-            const descriptionReferenceNode = descriptionTextarea ? descriptionTextarea.nextSibling : null;
+            const descriptionReferenceNode = descriptionTextarea.nextSibling;
             createPreviewArea(descriptionTextarea, descriptionReferenceNode);
             return;
         }
 
         const commentTextarea = document.querySelector('#comment');
         if (commentTextarea) {
-            const commentReferenceNode = commentTextarea ? commentTextarea.nextSibling : null;
+            // get the previous sibling of #replybutton parent
+            const commentReferenceNode = document.querySelector('#replybutton').parentNode.previousSibling;
             createPreviewArea(commentTextarea, commentReferenceNode);
         }
     });
