@@ -434,16 +434,24 @@
     // Run the script when the page loads
     window.addEventListener('load', () => {
         const messageTextarea = document.querySelector('#message');
-        const messageReferenceNode = messageTextarea ? messageTextarea.nextSibling : null;
-        createPreviewArea(messageTextarea, messageReferenceNode);
+        if (messageTextarea) {
+            const messageReferenceNode = messageTextarea ? messageTextarea.nextSibling : null;
+            createPreviewArea(messageTextarea, messageReferenceNode);
+            return;
+        }
 
         const descriptionTextarea = document.querySelector('#desc');
-        const descriptionReferenceNode = descriptionTextarea ? descriptionTextarea.nextSibling : null;
-        createPreviewArea(descriptionTextarea, descriptionReferenceNode);
+        if (descriptionTextarea) {
+            const descriptionReferenceNode = descriptionTextarea ? descriptionTextarea.nextSibling : null;
+            createPreviewArea(descriptionTextarea, descriptionReferenceNode);
+            return;
+        }
 
         const commentTextarea = document.querySelector('#comment');
-        const commentReferenceNode = commentTextarea ? commentTextarea.parentNode.nextElementSibling : null;
-        createPreviewArea(commentTextarea, commentReferenceNode);
+        if (commentTextarea) {
+            const commentReferenceNode = commentTextarea ? commentTextarea.nextSibling : null;
+            createPreviewArea(commentTextarea, commentReferenceNode);
+        }
     });
 
 })();
