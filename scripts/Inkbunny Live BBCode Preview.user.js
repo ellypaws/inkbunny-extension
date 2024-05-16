@@ -187,7 +187,7 @@
 
     async function updateThumbnails(previewDiv) {
         if (!sid) {
-            console.warn('Inkbunny Live BBCode Preview: SID not set so thumbnails will not be generated. Use the menu to set it');
+            console.warn('BBCode Preview: SID is not set so thumbnails will not be generated. Use the menu to set it');
             return;
         }
 
