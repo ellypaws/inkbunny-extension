@@ -494,6 +494,12 @@
             return;
         }
 
+        textArea = document.querySelector('#content');
+        if (textArea) {
+            applyArea(textArea);
+            return;
+        }
+
         const commentTextarea = document.querySelector('#comment');
         if (commentTextarea) {
             // get the previous sibling of #replybutton parent
