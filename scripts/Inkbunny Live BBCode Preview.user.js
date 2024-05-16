@@ -99,32 +99,38 @@
     async function fetchThumbnails(matchesData) {
         if (!sid) return null;
 
-        const submissionIds = matchesData.map(data => data.submissionId).join(',');
-        console.log(`Fetching data for submission IDs: ${submissionIds}`);
-        const response = await fetch(`https://inkbunny.net/api_submissions.php?sid=${sid}&submission_ids=${submissionIds}`);
-        const apiData = await response.json();
+        const misses = matchesData.filter(dataItem => {
+            const key = `${dataItem.submissionId}-${dataItem.page ? dataItem.page : '1'}-${dataItem.size}`;
+            return !cachedSubmissions[key];
+        });
+
+        if (misses.length > 0) {
+            const missedIds = misses.map(dataItem => dataItem.submissionId).join(',');
+            console.log(`Fetching data for missed submission IDs: ${missedIds}`);
+            const response = await fetch(`https://inkbunny.net/api_submissions.php?sid=${sid}&submission_ids=${missedIds}`);
+            const apiData = await response.json();
+
+            misses.forEach(dataItem => {
+                const key = `${dataItem.submissionId}-${dataItem.page ? dataItem.page : '1'}-${dataItem.size}`;
+                const submission = apiData.submissions.find(sub => sub.submission_id == dataItem.submissionId);
+                if (submission) {
+                    cachedSubmissions[key] = processSubmission(submission, dataItem.page, dataItem.size);
+                } else {
+                    console.error(`No data found for submission ID: ${dataItem.submissionId}`);
+                }
+            });
+        } else {
+            console.log('All thumbnails are cached');
+        }
 
         const htmls = matchesData.map(dataItem => {
             const key = `${dataItem.submissionId}-${dataItem.page ? dataItem.page : '1'}-${dataItem.size}`;
-            if (cachedSubmissions[key]) {
-                console.log(`Using cached data for submission ID: ${dataItem.submissionId}`);
-                return cachedSubmissions[key];
-            }
-
-            const submission = apiData.submissions.find(sub => sub.submission_id == dataItem.submissionId);
-            if (!submission) {
-                console.error(`No data found for submission ID: ${dataItem.submissionId}`);
-                return dataItem.match[0];
-            }
-
-            const processed = processSubmission(submission, dataItem.page, dataItem.size);
-            cachedSubmissions[key] = processed;
-
-            return processed;
+            return cachedSubmissions[key] || dataItem.match[0];
         });
 
         return htmls;
     }
+
 
     function processSubmission(submission, page, size) {
         if (!submission) {
