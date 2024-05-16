@@ -492,6 +492,10 @@
                 await updateThumbnails(previewDiv);
             }
         });
+
+        if (textarea.value.trim() !== '') {
+            textarea.dispatchEvent(new Event('input'));
+        }
     }
 
 
