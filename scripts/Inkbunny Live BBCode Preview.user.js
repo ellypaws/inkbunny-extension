@@ -180,7 +180,10 @@
 
 
     async function updateThumbnails(previewDiv) {
-        if (!sid) return;
+        if (!sid) {
+            console.warn('SID not set so thumbnails will not be generated. Use the menu to set it');
+            return;
+        }
 
         const lines = previewDiv.innerHTML.split('<br>');
         const processed = [];
