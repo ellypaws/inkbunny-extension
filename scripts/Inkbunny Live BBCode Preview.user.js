@@ -96,25 +96,34 @@
                 </a><a title="${username} on ${siteData.title}" rel="nofollow" href="${siteData.url}">${username}</a>`;
     }
 
-    async function fetchThumbnail(submissionId, page, size) {
+    async function fetchThumbnails(matchesData) {
         if (!sid) return null;
 
-        const key = `${submissionId}-${page ? page : '1'}-${size}`;
-        if (cachedSubmissions[key]) {
-            console.log(`Using cached data for submission ID: ${submissionId}`);
-            return cachedSubmissions[key];
-        }
+        const submissionIds = matchesData.map(data => data.submissionId).join(',');
+        console.log(`Fetching data for submission IDs: ${submissionIds}`);
+        const response = await fetch(`https://inkbunny.net/api_submissions.php?sid=${sid}&submission_ids=${submissionIds}`);
+        const apiData = await response.json();
 
-        console.log(`Fetching data for submission ID: ${submissionId}`);
-        const response = await fetch(`https://inkbunny.net/api_submissions.php?sid=${sid}&submission_ids=${submissionId}`);
-        const data = await response.json();
-        for (const submission of data.submissions) {
-            const processed = processSubmission(submission, page, size)
+        const htmls = matchesData.map(dataItem => {
+            const key = `${dataItem.submissionId}-${dataItem.page ? dataItem.page : '1'}-${dataItem.size}`;
+            if (cachedSubmissions[key]) {
+                console.log(`Using cached data for submission ID: ${dataItem.submissionId}`);
+                return cachedSubmissions[key];
+            }
+
+            const submission = apiData.submissions.find(sub => sub.submission_id == dataItem.submissionId);
+            if (!submission) {
+                console.error(`No data found for submission ID: ${dataItem.submissionId}`);
+                return dataItem.match[0];
+            }
+
+            const processed = processSubmission(submission, dataItem.page, dataItem.size);
             cachedSubmissions[key] = processed;
-            console.log(`Processed ${key}:`, {submission: submission, html: processed});
-        }
 
-        return cachedSubmissions[key];
+            return processed;
+        });
+
+        return htmls;
     }
 
     function processSubmission(submission, page, size) {
@@ -182,35 +191,43 @@
             const thumbMatches = [...line.matchAll(thumbRegex)];
             const shortcutMatches = [...line.matchAll(shortcutRegex)];
 
-            async function processMatch(match) {
+            const allMatches = thumbMatches.concat(shortcutMatches);
+            if (allMatches.length === 0) return line;
+
+            const matchesData = allMatches.map(match => {
                 const sizePrefix = match[1];
                 const submissionId = match[2];
                 const page = match[3];
                 let size = sizeMap[sizePrefix.toUpperCase()] || sizePrefix;
-                // replace small to medium as that's defunct
                 if (size === 'small') {
                     size = 'medium';
                 }
+                return {match, submissionId, page, size};
+            });
 
-                const html = await fetchThumbnail(submissionId, page, size);
-                if (!html) {
-                    console.error(`No thumbnail html returned for submission ID: ${submissionId}`);
-                    return;
-                }
-                line = line.replace(match[0], html);
+            const submissionIds = matchesData.map(data => data.submissionId).join(',');
 
+            const thumbnails = await fetchThumbnails(matchesData);
+            if (!thumbnails) {
+                console.error(`No thumbnail html returned for submission IDs: ${submissionIds}`);
+                return;
+            }
+
+            matchesData.forEach((data, i) => {
+                const html = thumbnails[i];
+                line = line.replace(data.match[0], html);
+            });
+
+            allMatches.map(match =>
                 processed.push({
                     line: index,
                     original: match[0],
                     replaced: original
-                });
+                })
+            )
 
-                lines[index] = line;
-                previewDiv.innerHTML = lines.join('<br>');
-            }
-
-            await Promise.all(thumbMatches.map(match => processMatch(match)));
-            await Promise.all(shortcutMatches.map(match => processMatch(match)));
+            lines[index] = line;
+            previewDiv.innerHTML = lines.join('<br>');
 
             const lineHash = hashString(original);
             lineHashCache.set(original, lineHash);
