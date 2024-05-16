@@ -119,8 +119,8 @@
 
     function processSubmission(submission, page, size) {
         if (!submission) {
-            console.error(`Submission not found for ID: ${submissionId}`);
-            return null;
+            console.error(`Submission is null`, submission);
+            throw new Error('Submission is null');
         }
 
         let image = {
@@ -163,7 +163,10 @@
                 </table>`}`;
         }
 
-        return image ? generateThumbnailHtml(image, page) : null;
+        if (!image) {
+            throw new Error('No image found');
+        }
+        return generateThumbnailHtml(image, page);
     }
 
 
