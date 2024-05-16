@@ -471,17 +471,26 @@
 
     // Run the script when the page loads
     window.addEventListener('load', () => {
-        const messageTextarea = document.querySelector('#message');
-        if (messageTextarea) {
-            const messageReferenceNode = messageTextarea.nextSiblings()[1]
-            createPreviewArea(messageTextarea, messageReferenceNode);
+        function applyArea(textArea) {
+            const messageReferenceNode = textArea.nextSiblings()[1]
+            createPreviewArea(textArea, messageReferenceNode);
+        }
+
+        let textArea = document.querySelector('#message');
+        if (textArea) {
+            applyArea(textArea);
             return;
         }
 
-        const descriptionTextarea = document.querySelector('#desc');
-        if (descriptionTextarea) {
-            const descriptionReferenceNode = descriptionTextarea.nextSiblings()[1]
-            createPreviewArea(descriptionTextarea, descriptionReferenceNode);
+        textArea = document.querySelector('#desc');
+        if (textArea) {
+            applyArea(textArea);
+            return;
+        }
+
+        textArea = document.querySelector('#profile');
+        if (textArea) {
+            applyArea(textArea);
             return;
         }
 
