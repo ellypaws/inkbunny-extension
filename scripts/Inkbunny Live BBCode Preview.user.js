@@ -219,15 +219,12 @@
             matchesData.forEach((data, i) => {
                 const html = thumbnails[i];
                 line = line.replace(data.match[0], html);
-            });
-
-            allMatches.map(match =>
                 processed.push({
                     line: index,
-                    original: match[0],
+                    original: data.match[0],
                     replaced: original
                 })
-            )
+            });
 
             lines[index] = line;
             previewDiv.innerHTML = lines.join('<br>');
