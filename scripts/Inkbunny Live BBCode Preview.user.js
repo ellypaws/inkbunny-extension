@@ -312,6 +312,18 @@
         const lines = bbcode.split('\n');
         const resultLines = [];
 
+        // insert code class style
+        resultLines.push(`
+        <style>
+            .code {
+                display: inline-block;
+                margin: unset;
+                background-color: #eeeeec;
+                color: #666;
+            }
+        </style>`);
+
+        const code = {started: false, left: '', code: '', right: ''};
         for (const line of lines) {
             const lineHash = hashString(line);
 
@@ -321,9 +333,46 @@
                 continue;
             }
 
+            let lineHtml = line;
+
+            const startCodeIndex = line.indexOf('[code]');
+            if (startCodeIndex !== -1) {
+                code.started = true;
+                code.left = lineHtml.substring(0, startCodeIndex);
+            }
+
+            // Check if the line contains [code] or [/code] and only process outside of code blocks
+            if (code.started) {
+                // TODO: Handle left part, right side and code block
+                // if starts with [code] and ends with [/code] or not found, continue loop
+                // if there's left or right part,
+                // process that with LEFT$codeRIGHT then concatenate with unprocessed code block.
+                // this is because there might be BBCode inside the code block, which shouldn't be processed.
+                const endCodeIndex = line.indexOf('[/code]');
+                if (endCodeIndex === -1) {
+                    // If [/code] is not found, it could be on the other line
+                    code.left = '';
+                    lineHtml = '<pre class="code">' + lineHtml.replace('[code]', '') + '</pre>';
+
+                    lineHashCache.set(line, lineHash);
+                    lineHashCache.set(line + '_html', lineHtml);
+
+                    resultLines.push(lineHtml);
+                    continue
+                }
+                code.right = lineHtml.substring(endCodeIndex + 7);
+                code.code = lineHtml
+                            .substring((startCodeIndex > -1 ? startCodeIndex + 6 : 0), endCodeIndex)
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;');
+
+                lineHtml = `${code.left}$code${code.right}`;
+                code.started = false;
+            }
+
             // Replace plain URLs with [url] BBCode
             const urlRegex = /(?<!\[url=)(https?:\/\/[^\s]+)/g;
-            let lineHtml = line.replace(urlRegex, '[url=$1]$1[/url]');
+            lineHtml = lineHtml.replace(urlRegex, '[url=$1]$1[/url]');
 
             // Replace ib! with [name] BBCode
             const ibName = /ib!(\w+)/g;
@@ -340,6 +389,11 @@
                 } else {
                     lineHtml = lineHtml.replace(pattern, replacement);
                 }
+            }
+
+            // Add back the code block if set
+            if (code.code) {
+                lineHtml = lineHtml.replace('$code', `<pre class="code">${code.code}</pre>`);
             }
 
             // Store the hash and the processed HTML in the cache
