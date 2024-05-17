@@ -282,9 +282,7 @@
             replacement: '<div class="bbcode_quote"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="bbcode_quote_symbol" rowspan="2">"</td><td class="bbcode_quote_author">$1 wrote:</td></tr><tr><td class="bbcode_quote_quote">'
         },
         {pattern: new RegExp(/\[\/q]/g), replacement: '</td></tr></tbody></table></div>'},
-        {pattern: new RegExp(/(?<!\[url=)(https?:\/\/\S+)/g), replacement: '<a href="$1" rel="nofollow">$1</a>'},
         {pattern: new RegExp(/\[url=(.*?)](.*?)\[\/url]/g), replacement: '<a href="$1" rel="nofollow">$2</a>'},
-        {pattern: new RegExp(/\[url](.*?)\[\/url]/g), replacement: '<a href="$1" rel="nofollow">$1</a>'},
         {
             pattern: new RegExp(/\[name](.*?)\[\/name]/g),
             replacement: '<a class="widget_userNameSmall watching" href="/$1">$1</a>'
