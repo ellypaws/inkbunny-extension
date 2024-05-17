@@ -185,24 +185,23 @@
     }
 
 
-    async function updateThumbnails(previewDiv) {
+    async function updateThumbnails(lines, previewDiv) {
         if (!sid) {
             console.warn('BBCode Preview: SID is not set so thumbnails will not be generated. Use the menu to set it');
             return;
         }
 
-        const lines = previewDiv.innerHTML.split('<br>');
         const processed = [];
         const sizeMap = {S: 'small', M: 'medium', L: 'large', H: 'huge'};
 
-        const promises = lines.map(async (line, index) => {
-            const original = line;
-            const thumbMatches = [...line.matchAll(thumbRegex)];
-            const shortcutMatches = [...line.matchAll(shortcutRegex)];
+        const promises = lines.map(async (bbcode, index) => {
+            const thumbMatches = [...bbcode.html.matchAll(thumbRegex)];
+            const shortcutMatches = [...bbcode.html.matchAll(shortcutRegex)];
 
             const allMatches = thumbMatches.concat(shortcutMatches);
-            if (allMatches.length === 0) return line;
+            if (allMatches.length === 0) return;
 
+            // console.log(`Found ${allMatches.length} thumbnails to update in line ${index}:`, {bbcode, allMatches});
             const matchesData = allMatches.map(match => {
                 const sizePrefix = match[1];
                 const submissionId = match[2];
@@ -224,22 +223,20 @@
 
             matchesData.forEach((data, i) => {
                 const html = thumbnails[i];
-                line = line.replace(data.match[0], html);
+                bbcode.html = bbcode.html.replace(data.match[0], html);
                 processed.push({
                     line: index,
                     original: data.match[0],
-                    replaced: original
+                    replaced: bbcode.line
                 })
             });
 
-            lines[index] = line;
-            previewDiv.innerHTML = lines.join('<br>');
+            lines[index].html = bbcode.html;
+            previewDiv.innerHTML = lines.map(line => line.html).join('<br>');
 
-            const lineHash = hashString(original);
-            lineHashCache.set(original, lineHash);
-            lineHashCache.set(original + '_html', line);
-
-            return line;
+            const lineHash = hashString(bbcode.line);
+            lineHashCache.set(bbcode.line, lineHash);
+            lineHashCache.set(bbcode.line + '_html', bbcode.html);
         });
 
         await Promise.all(promises);
@@ -307,38 +304,53 @@
         }
     ];
 
+    const escapes = [
+        {pattern: new RegExp(/</g), replacement: '&lt;'},
+        {pattern: new RegExp(/>/g), replacement: '&gt;'},
+        {pattern: new RegExp(/#/g), replacement: '&#35;'},
+        {pattern: new RegExp(/\[/g), replacement: '&#91;'},
+        {pattern: new RegExp(/\//g), replacement: '&#47;'},
+        {pattern: new RegExp(/]/g), replacement: '&#93;'}
+    ]
+
+    function escape(html) {
+        for (const {pattern, replacement} of escapes) {
+            html = html.replace(pattern, replacement);
+        }
+        return html;
+    }
+
     // Function to convert BBCode to HTML
     async function bbcodeToHtml(bbcode) {
-        const lines = bbcode.split('\n');
-        const resultLines = [];
-
         // insert code class style
-        resultLines.push(`
-        <style>
-            .code {
-                display: inline-block;
-                margin: unset;
-                background-color: #eeeeec;
-                color: #666;
-            }
-        </style>`);
+        bbcode.push({
+            html: `
+<style>
+    .code {
+        display: inline-block;
+        margin: unset;
+        background-color: #eeeeec;
+        color: #666;
+    }
+</style>`
+        });
 
         const code = {started: false, left: '', code: '', right: ''};
-        for (const line of lines) {
-            const lineHash = hashString(line);
+        for (const each of bbcode) {
+            if (!each.line) continue;
 
-            if (lineHashCache.get(line) === lineHash) {
+            const lineHash = hashString(each.line);
+
+            if (lineHashCache.get(each.line) === lineHash) {
                 // If line hash matches cached hash, use the cached result
-                resultLines.push(lineHashCache.get(line + '_html'));
+                each.html = lineHashCache.get(each.line + '_html');
                 continue;
             }
 
-            let lineHtml = line;
-
-            const startCodeIndex = line.indexOf('[code]');
+            const startCodeIndex = each.line.indexOf('[code]');
             if (startCodeIndex !== -1) {
                 code.started = true;
-                code.left = lineHtml.substring(0, startCodeIndex);
+                code.left = each.html.substring(0, startCodeIndex);
             }
 
             // Check if the line contains [code] or [/code] and only process outside of code blocks
@@ -348,69 +360,60 @@
                 // if there's left or right part,
                 // process that with LEFT$codeRIGHT then concatenate with unprocessed code block.
                 // this is because there might be BBCode inside the code block, which shouldn't be processed.
-                const endCodeIndex = line.indexOf('[/code]');
+                const endCodeIndex = each.line.indexOf('[/code]');
                 if (endCodeIndex === -1) {
                     // If [/code] is not found, it could be on the other line
                     code.left = '';
-                    lineHtml = '<pre class="code">' + lineHtml.replace('[code]', '') + '</pre>';
+                    each.html = '<pre class="code">' + escape(each.html.replace('[code]', '')) + '</pre>';
 
-                    lineHashCache.set(line, lineHash);
-                    lineHashCache.set(line + '_html', lineHtml);
-
-                    resultLines.push(lineHtml);
+                    lineHashCache.set(each.line, lineHash);
+                    lineHashCache.set(each.line + '_html', each.html);
                     continue
                 }
-                code.right = lineHtml.substring(endCodeIndex + 7);
-                code.code = lineHtml
-                            .substring((startCodeIndex > -1 ? startCodeIndex + 6 : 0), endCodeIndex)
-                            .replace(/</g, '&lt;')
-                            .replace(/>/g, '&gt;');
+                code.right = each.html.substring(endCodeIndex + 7);
+                code.code = escape(each.html.substring((startCodeIndex > -1 ? startCodeIndex + 6 : 0), endCodeIndex))
 
-                lineHtml = `${code.left}$code${code.right}`;
+                each.html = `${code.left}$code${code.right}`;
                 code.started = false;
             }
 
             // Replace plain URLs with [url] BBCode
-            const urlRegex = /(?<!\[url=)(https?:\/\/[^\s]+)/g;
-            lineHtml = lineHtml.replace(urlRegex, '[url=$1]$1[/url]');
+            const urlRegex = /(?<!\[url=)(https?:\/\/\S+)/g;
+            each.html = each.html.replace(urlRegex, '[url=$1]$1[/url]');
 
             // Replace ib! with [name] BBCode
             const ibName = /ib!(\w+)/g;
-            lineHtml = lineHtml.replace(ibName, '[name]$1[/name]');
+            each.html = each.html.replace(ibName, '[name]$1[/name]');
 
             // Apply BBCode to HTML replacements
             for (const {pattern, replacement} of bbTagReplacements) {
                 if (typeof replacement === 'function') {
-                    const matches = [...lineHtml.matchAll(pattern)];
+                    const matches = [...each.html.matchAll(pattern)];
                     for (const match of matches) {
                         const replacementHtml = await replacement(...match);
-                        lineHtml = lineHtml.replace(match[0], replacementHtml);
+                        each.html = each.html.replace(match[0], replacementHtml);
                     }
                 } else {
-                    lineHtml = lineHtml.replace(pattern, replacement);
+                    each.html = each.html.replace(pattern, replacement);
                 }
             }
 
             // Add back the code block if set
             if (code.code) {
-                lineHtml = lineHtml.replace('$code', `<pre class="code">${code.code}</pre>`);
+                each.html = each.html.replace('$code', `<pre class="code">${code.code}</pre>`);
+                code.code = '';
             }
 
             // Store the hash and the processed HTML in the cache
-            lineHashCache.set(line, lineHash);
-            lineHashCache.set(line + '_html', lineHtml);
-
-            resultLines.push(lineHtml);
+            lineHashCache.set(each.line, lineHash);
+            lineHashCache.set(each.line + '_html', each.html);
         }
-
-        // Return the processed BBCode with placeholders joined by <br>
-        return resultLines.join('<br>');
     }
 
     // Function to create the icon HTML
     async function createIcon(username, includeName = false) {
         const iconUrl = await getIconUrl(username);
-        const iconHtml = `<table style="display: inline-block; vertical-align:bottom;">
+        return `<table style="display: inline-block; vertical-align:bottom;">
                             <tr>
                                 <td style="vertical-align: middle; border: none;">
                                     <div style="width: 50px; height: 50px; position: relative; margin: 0px auto;">
@@ -424,7 +427,6 @@
                                 </td>` : ''}
                             </tr>
                           </table>`;
-        return iconHtml;
     }
 
     function wrapSelectedText(textarea, before, after) {
@@ -537,11 +539,17 @@
                 previewDiv.appendChild(placeholder);
             } else {
                 placeholder.style.display = 'none';
-                const bbcode = await bbcodeToHtml(textarea.value);
-                previewDiv.innerHTML = bbcode;
+
+                const bbcode = textarea.value.split('\n').map(line => ({line: line, html: line}));
+                console.time('Parsing BBCode preview');
+                await bbcodeToHtml(bbcode);
+                previewDiv.innerHTML = bbcode.map(bbcode => bbcode.html).join('<br>');
+                console.timeEnd('Parsing BBCode preview');
 
                 // Call updateThumbnails after setting innerHTML
-                await updateThumbnails(previewDiv);
+                console.time('Updating thumbnails');
+                await updateThumbnails(bbcode, previewDiv);
+                console.timeEnd('Updating thumbnails');
             }
         });
 
