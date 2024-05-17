@@ -101,7 +101,24 @@
 
         const misses = matchesData.filter(dataItem => {
             const key = `${dataItem.submissionId}-${dataItem.page ? dataItem.page : '1'}-${dataItem.size}`;
-            return !cachedSubmissions[key];
+            if (!cachedSubmissions[key]) {
+                // Initialize the promise in cache if it doesn't exist
+                let resolve, reject;
+                cachedSubmissions[key] = new Promise((res, rej) => {
+                    resolve = res;
+                    reject = rej;
+                });
+                cachedSubmissions[key].resolve = resolve;
+                cachedSubmissions[key].reject = reject;
+                cachedSubmissions[key].fetching = true;
+                return true;
+            } else if (cachedSubmissions[key].fetching) {
+                console.log(`Still fetching thumbnail:`, key);
+                return false;
+            } else {
+                console.log(`Cache hit for thumbnail:`, key);
+                return false;
+            }
         });
 
         if (misses.length > 0) {
@@ -114,19 +131,30 @@
                 const key = `${dataItem.submissionId}-${dataItem.page ? dataItem.page : '1'}-${dataItem.size}`;
                 const submission = apiData.submissions.find(sub => sub.submission_id == dataItem.submissionId);
                 if (submission) {
-                    cachedSubmissions[key] = processSubmission(submission, dataItem.page, dataItem.size);
+                    const html = processSubmission(submission, dataItem.page, dataItem.size);
+                    cachedSubmissions[key].resolve(html);
+                    cachedSubmissions[key] = {html, status: 'resolved'};
                 } else {
-                    console.error(`No data found for submission ID: ${dataItem.submissionId}`);
+                    const errorMsg = `No data found for submission ID: ${dataItem.submissionId}`;
+                    console.error(errorMsg);
+                    cachedSubmissions[key].reject(errorMsg);
+                    delete cachedSubmissions[key];
                 }
             });
-        } else {
+        } else if (!matchesData.some(dataItem => {
+            const key = `${dataItem.submissionId}-${dataItem.page ? dataItem.page : '1'}-${dataItem.size}`;
+            return cachedSubmissions[key] && cachedSubmissions[key].fetching;
+        })) {
             console.log('All thumbnails are cached');
         }
 
-        const htmls = matchesData.map(dataItem => {
+        const htmls = await Promise.all(matchesData.map(dataItem => {
             const key = `${dataItem.submissionId}-${dataItem.page ? dataItem.page : '1'}-${dataItem.size}`;
-            return cachedSubmissions[key] || dataItem.match[0];
-        });
+            if (cachedSubmissions[key] instanceof Promise) {
+                return cachedSubmissions[key];
+            }
+            return Promise.resolve(cachedSubmissions[key].html || dataItem.match[0]);
+        }));
 
         return htmls;
     }
