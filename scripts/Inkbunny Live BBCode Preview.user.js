@@ -99,26 +99,25 @@
     async function fetchThumbnails(matchesData) {
         if (!sid) return null;
 
-        const submissionFetchPromises = {};
         const misses = matchesData.filter(dataItem => {
-            if (!cachedSubmissions[dataItem.key]) {
+            if (!cachedSubmissions[dataItem.submissionId]) {
                 // Initialize the promise in cache if it doesn't exist
                 let resolve, reject;
-                cachedSubmissions[dataItem.key] = new Promise((res, rej) => {
+                cachedSubmissions[dataItem.submissionId] = new Promise((res, rej) => {
                     resolve = res;
                     reject = rej;
                 });
-                cachedSubmissions[dataItem.key].resolve = resolve;
-                cachedSubmissions[dataItem.key].reject = reject;
-                cachedSubmissions[dataItem.key].fetching = true;
+                cachedSubmissions[dataItem.submissionId].resolve = resolve;
+                cachedSubmissions[dataItem.submissionId].reject = reject;
+                cachedSubmissions[dataItem.submissionId].fetching = true;
                 return true;
-            } else if (cachedSubmissions[dataItem.key].fetching) {
-                console.log(`Still fetching thumbnail:`, dataItem.key);
-                return false;
-            } else {
-                console.log(`Cache hit for thumbnail:`, dataItem.key);
+            }
+            if (cachedSubmissions[dataItem.submissionId].fetching) {
+                console.log(`Still fetching:`, dataItem.key);
                 return false;
             }
+            console.log(`Cache hit for:`, dataItem.key);
+            return false;
         });
 
         if (misses.length > 0) {
@@ -130,27 +129,32 @@
             misses.forEach(dataItem => {
                 const submission = apiData.submissions.find(sub => sub.submission_id == dataItem.submissionId);
                 if (submission) {
-                    const html = processSubmission(submission, dataItem.page, dataItem.size);
-                    cachedSubmissions[dataItem.key].resolve(html);
-                    cachedSubmissions[dataItem.key] = {html, status: 'resolved'};
+                    cachedSubmissions[dataItem.submissionId].resolve(submission);
                 } else {
                     const errorMsg = `No data found for submission ID: ${dataItem.submissionId}`;
                     console.error(errorMsg);
-                    cachedSubmissions[dataItem.key].reject(errorMsg);
-                    delete cachedSubmissions[dataItem.key];
+                    cachedSubmissions[dataItem.submissionId].reject(errorMsg);
+                    delete cachedSubmissions[dataItem.submissionId];
                 }
             });
         } else if (!matchesData.some(dataItem => {
-            return cachedSubmissions[dataItem.key] && cachedSubmissions[dataItem.key].fetching;
+            return cachedSubmissions[dataItem.submissionId] && cachedSubmissions[dataItem.submissionId].fetching;
         })) {
             console.log('All thumbnails are cached');
         }
 
-        const htmls = await Promise.all(matchesData.map(dataItem => {
-            if (cachedSubmissions[dataItem.key] instanceof Promise) {
+        const htmls = await Promise.all(matchesData.map(async dataItem => {
+            const submission = await cachedSubmissions[dataItem.submissionId];
+            if (!submission) {
+                console.error(`Submission not found for ID: ${dataItem.submissionId}`);
+                return null;
+            }
+            if (cachedSubmissions[dataItem.key]) {
                 return cachedSubmissions[dataItem.key];
             }
-            return Promise.resolve(cachedSubmissions[dataItem.key].html || dataItem.match[0]);
+            const html = processSubmission(submission, dataItem.page, dataItem.size);
+            cachedSubmissions[dataItem.key] = html;
+            return html;
         }));
 
         return htmls;
@@ -201,10 +205,6 @@
                         </tr>
                     </tbody>
                 </table>`}`;
-        }
-
-        if (!image) {
-            throw new Error('No image found');
         }
         return generateThumbnailHtml(image, page);
     }
