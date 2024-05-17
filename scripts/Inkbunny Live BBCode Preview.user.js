@@ -322,23 +322,8 @@
 
     // Function to convert BBCode to HTML
     async function bbcodeToHtml(bbcode) {
-        // insert code class style
-        bbcode.push({
-            html: `
-<style>
-    .code {
-        display: inline-block;
-        margin: unset;
-        background-color: #eeeeec;
-        color: #666;
-    }
-</style>`
-        });
-
         const code = {started: false, left: '', code: '', right: ''};
         for (const each of bbcode) {
-            if (!each.line) continue;
-
             const lineHash = hashString(each.line);
 
             if (lineHashCache.get(each.line) === lineHash) {
@@ -408,6 +393,19 @@
             lineHashCache.set(each.line, lineHash);
             lineHashCache.set(each.line + '_html', each.html);
         }
+
+        // insert code class style
+        bbcode.push({
+            html: `
+<style>
+    .code {
+        display: inline-block;
+        margin: unset;
+        background-color: #eeeeec;
+        color: #666;
+    }
+</style>`
+        });
     }
 
     // Function to create the icon HTML
