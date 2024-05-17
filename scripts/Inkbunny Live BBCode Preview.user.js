@@ -255,6 +255,10 @@
     const bbTagReplacements = [
         {pattern: new RegExp(/</g), replacement: '&lt;'},
         {pattern: new RegExp(/>/g), replacement: '&gt;'},
+        {
+            pattern: new RegExp(/\[code]([^\[]*?)\[\/code]/g),
+            replacement: (match, code) => `<pre>${code}</pre>`
+        },
         {pattern: new RegExp(/\[b]/g), replacement: '<strong>'},
         {pattern: new RegExp(/\[\/b]/g), replacement: '</strong>'},
         {pattern: new RegExp(/\[i]/g), replacement: '<em>'},
@@ -293,10 +297,6 @@
             replacement: async (match, username) => createIcon(username, true)
         },
         {pattern: new RegExp(/@(\w+)/g), replacement: async (match, username) => createIcon(username, true)},
-        {
-            pattern: new RegExp(/\[code]([^\[]*?)\[\/code]/g),
-            replacement: (match, code) => `<pre>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`
-        },
         {
             pattern: new RegExp(/\[(da|fa|sf|w)](.*?)\[\/\1]/g),
             replacement: (match, site, username) => createSocialLink(site, username)
