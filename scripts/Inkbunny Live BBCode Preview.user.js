@@ -99,24 +99,24 @@
     async function fetchThumbnails(matchesData) {
         if (!sid) return null;
 
+        const submissionFetchPromises = {};
         const misses = matchesData.filter(dataItem => {
-            const key = `${dataItem.submissionId}-${dataItem.page ? dataItem.page : '1'}-${dataItem.size}`;
-            if (!cachedSubmissions[key]) {
+            if (!cachedSubmissions[dataItem.key]) {
                 // Initialize the promise in cache if it doesn't exist
                 let resolve, reject;
-                cachedSubmissions[key] = new Promise((res, rej) => {
+                cachedSubmissions[dataItem.key] = new Promise((res, rej) => {
                     resolve = res;
                     reject = rej;
                 });
-                cachedSubmissions[key].resolve = resolve;
-                cachedSubmissions[key].reject = reject;
-                cachedSubmissions[key].fetching = true;
+                cachedSubmissions[dataItem.key].resolve = resolve;
+                cachedSubmissions[dataItem.key].reject = reject;
+                cachedSubmissions[dataItem.key].fetching = true;
                 return true;
-            } else if (cachedSubmissions[key].fetching) {
-                console.log(`Still fetching thumbnail:`, key);
+            } else if (cachedSubmissions[dataItem.key].fetching) {
+                console.log(`Still fetching thumbnail:`, dataItem.key);
                 return false;
             } else {
-                console.log(`Cache hit for thumbnail:`, key);
+                console.log(`Cache hit for thumbnail:`, dataItem.key);
                 return false;
             }
         });
@@ -128,32 +128,29 @@
             const apiData = await response.json();
 
             misses.forEach(dataItem => {
-                const key = `${dataItem.submissionId}-${dataItem.page ? dataItem.page : '1'}-${dataItem.size}`;
                 const submission = apiData.submissions.find(sub => sub.submission_id == dataItem.submissionId);
                 if (submission) {
                     const html = processSubmission(submission, dataItem.page, dataItem.size);
-                    cachedSubmissions[key].resolve(html);
-                    cachedSubmissions[key] = {html, status: 'resolved'};
+                    cachedSubmissions[dataItem.key].resolve(html);
+                    cachedSubmissions[dataItem.key] = {html, status: 'resolved'};
                 } else {
                     const errorMsg = `No data found for submission ID: ${dataItem.submissionId}`;
                     console.error(errorMsg);
-                    cachedSubmissions[key].reject(errorMsg);
-                    delete cachedSubmissions[key];
+                    cachedSubmissions[dataItem.key].reject(errorMsg);
+                    delete cachedSubmissions[dataItem.key];
                 }
             });
         } else if (!matchesData.some(dataItem => {
-            const key = `${dataItem.submissionId}-${dataItem.page ? dataItem.page : '1'}-${dataItem.size}`;
-            return cachedSubmissions[key] && cachedSubmissions[key].fetching;
+            return cachedSubmissions[dataItem.key] && cachedSubmissions[dataItem.key].fetching;
         })) {
             console.log('All thumbnails are cached');
         }
 
         const htmls = await Promise.all(matchesData.map(dataItem => {
-            const key = `${dataItem.submissionId}-${dataItem.page ? dataItem.page : '1'}-${dataItem.size}`;
-            if (cachedSubmissions[key] instanceof Promise) {
-                return cachedSubmissions[key];
+            if (cachedSubmissions[dataItem.key] instanceof Promise) {
+                return cachedSubmissions[dataItem.key];
             }
-            return Promise.resolve(cachedSubmissions[key].html || dataItem.match[0]);
+            return Promise.resolve(cachedSubmissions[dataItem.key].html || dataItem.match[0]);
         }));
 
         return htmls;
@@ -238,7 +235,8 @@
                 if (size === 'small') {
                     size = 'medium';
                 }
-                return {match, submissionId, page, size};
+                const key = `${submissionId}-${page ? page : '1'}-${size}`;
+                return {match, submissionId, page, size, key};
             });
 
             const submissionIds = matchesData.map(data => data.submissionId).join(',');
