@@ -113,7 +113,7 @@
                 return true;
             }
             if (cachedSubmissions[dataItem.submissionId].fetching) {
-                console.log(`Still fetching:`, dataItem.key);
+                // console.log(`Still fetching:`, dataItem.key);
                 return false;
             }
             console.log(`Cache hit for:`, dataItem.key);
@@ -213,6 +213,17 @@
         return generateThumbnailHtml(image, page);
     }
 
+    const thumbRegex = /\[(small|medium|large|huge)thumb\](\d+)(?:,(\d+))?\[\/\1thumb\]/g;
+    const shortcutRegex = /#(S|M|L|H)(\d+)(?:,(\d+))?/g;
+
+    const bbTagIcons = [
+        {pattern: new RegExp(/\[icon](.*?)\[\/icon]/g), replacement: async (match, username) => createIcon(username)},
+        {
+            pattern: new RegExp(/\[iconname](.*?)\[\/iconname]/g),
+            replacement: async (match, username) => createIcon(username, true)
+        },
+        {pattern: new RegExp(/@(\w+)/g), replacement: async (match, username) => createIcon(username, true)},
+    ];
 
     async function updateThumbnails(lines, previewDiv) {
         if (!sid) {
@@ -220,10 +231,37 @@
             return;
         }
 
-        const processed = [];
+        let thumbnailCount = 0;
+        let iconCount = 0;
         const sizeMap = {S: 'small', M: 'medium', L: 'large', H: 'huge'};
 
+        function updateLine(index, bbcode) {
+            lines[index].html = bbcode.html;
+            previewDiv.innerHTML = lines.map(line => line.html).join('<br>');
+
+            const lineHash = hashString(bbcode.line);
+            lineHashCache.set(bbcode.line, lineHash);
+            lineHashCache.set(bbcode.line + '_html', bbcode.html);
+        }
+
         const promises = lines.map(async (bbcode, index) => {
+            for (const {pattern, replacement} of bbTagIcons) {
+                const matches = [...bbcode.html.matchAll(pattern)];
+                for (const match of matches) {
+                    const now = Date.now();
+                    const replacementHtml = await replacement(...match);
+                    iconCount++;
+
+                    bbcode.html = bbcode.html.replace(match[0], replacementHtml);
+                    updateLine(index, bbcode)
+
+                    const duration = Date.now() - now;
+                    if (duration > 50) {
+                        console.log(`Replaced icon for ${match[0]} in line ${index}: ${duration}ms`);
+                    }
+                }
+            }
+
             const thumbMatches = [...bbcode.html.matchAll(thumbRegex)];
             const shortcutMatches = [...bbcode.html.matchAll(shortcutRegex)];
 
@@ -254,30 +292,17 @@
             matchesData.forEach((data, i) => {
                 const html = thumbnails[i];
                 bbcode.html = bbcode.html.replace(data.match[0], html);
-                processed.push({
-                    line: index,
-                    original: data.match[0],
-                    replaced: bbcode.line
-                })
+                thumbnailCount++;
             });
 
-            lines[index].html = bbcode.html;
-            previewDiv.innerHTML = lines.map(line => line.html).join('<br>');
-
-            const lineHash = hashString(bbcode.line);
-            lineHashCache.set(bbcode.line, lineHash);
-            lineHashCache.set(bbcode.line + '_html', bbcode.html);
+            updateLine(index, bbcode);
         });
 
         await Promise.all(promises);
 
-        if (!processed.length) {
-            console.log('No thumbnails to update');
-        }
+        console.log(thumbnailCount ? `Updated ${thumbnailCount} thumbnails` : 'No thumbnails to update');
+        console.log(iconCount ? `Updated ${iconCount} icons` : 'No icons to update');
     }
-
-    const thumbRegex = /\[(small|medium|large|huge)thumb\](\d+)(?:,(\d+))?\[\/\1thumb\]/g;
-    const shortcutRegex = /#(S|M|L|H)(\d+)(?:,(\d+))?/g;
 
     const bbTagReplacements = [
         {pattern: new RegExp(/</g), replacement: '&lt;'},
@@ -318,12 +343,6 @@
             pattern: new RegExp(/\[name](.*?)\[\/name]/g),
             replacement: '<a class="widget_userNameSmall watching" href="/$1">$1</a>'
         },
-        {pattern: new RegExp(/\[icon](.*?)\[\/icon]/g), replacement: async (match, username) => createIcon(username)},
-        {
-            pattern: new RegExp(/\[iconname](.*?)\[\/iconname]/g),
-            replacement: async (match, username) => createIcon(username, true)
-        },
-        {pattern: new RegExp(/@(\w+)/g), replacement: async (match, username) => createIcon(username, true)},
         {
             pattern: new RegExp(/\[(da|fa|sf|w)](.*?)\[\/\1]/g),
             replacement: (match, site, username) => createSocialLink(site, username)
@@ -362,6 +381,7 @@
                 continue;
             }
 
+            let timeNow = Date.now();
             const startCodeIndex = each.line.indexOf('[code]');
             if (startCodeIndex !== -1) {
                 code.started = true;
@@ -383,6 +403,11 @@
 
                     lineHashCache.set(each.line, lineHash);
                     lineHashCache.set(each.line + '_html', each.html);
+
+                    const duration = Date.now() - timeNow;
+                    if (duration > 10) {
+                        console.timeLog('Parsing BBCode preview', each.line, duration);
+                    }
                     continue
                 }
                 code.right = each.html.substring(endCodeIndex + 7);
@@ -422,6 +447,11 @@
             // Store the hash and the processed HTML in the cache
             lineHashCache.set(each.line, lineHash);
             lineHashCache.set(each.line + '_html', each.html);
+
+            const duration = Date.now() - timeNow;
+            if (duration > 10) {
+                console.timeLog('Parsing BBCode preview', each.line, duration);
+            }
         }
 
         // insert code class style
