@@ -300,8 +300,12 @@
 
         await Promise.all(promises);
 
-        console.log(thumbnailCount ? `Updated ${thumbnailCount} thumbnails` : 'No thumbnails to update');
-        console.log(iconCount ? `Updated ${iconCount} icons` : 'No icons to update');
+        if (thumbnailCount) {
+            console.log(`Updated ${thumbnailCount} thumbnails`);
+        }
+        if (iconCount) {
+            console.log(`Updated ${iconCount} icons`);
+        }
     }
 
     const bbTagReplacements = [
