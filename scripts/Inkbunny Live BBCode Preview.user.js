@@ -187,6 +187,10 @@
         <div title="Submission has ${submission.pagecount} pages" style="width: ${image.width}px; height: ${image.height}px; position: absolute; bottom: 0px; right: -1px; background-image: url(https://jp.ib.metapix.net/images80/overlays/multipage_large.png); background-position: bottom right; background-repeat: no-repeat;"></div>
         <div title="Submission has ${submission.pagecount} pages" style=" position: absolute; bottom: 0px; right: 2px; color: #333333; font-size: 10pt;">+${submission.pagecount}</div>` : '';
 
+        if (!image) {
+            throw new Error('No image found');
+        }
+
         function generateThumbnailHtml(image, page) {
             return `
             ${!isMultiPage ? `<img src="${image.url}" alt="Thumbnail" />` : `
