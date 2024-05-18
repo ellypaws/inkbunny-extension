@@ -225,10 +225,12 @@
         {pattern: new RegExp(/@(\w+)/g), replacement: async (match, username) => createIcon(username, true)},
     ];
 
+    let warnOnce = false;
+
     async function updateThumbnails(lines, previewDiv) {
-        if (!sid) {
+        if (!sid && !warnOnce) {
+            warnOnce = true;
             console.warn('BBCode Preview: SID is not set so thumbnails will not be generated. Use the menu to set it');
-            return;
         }
 
         let thumbnailCount = 0;
