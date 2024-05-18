@@ -264,6 +264,8 @@
                 }
             }
 
+            if (!sid) return;
+
             const thumbMatches = [...bbcode.html.matchAll(thumbRegex)];
             const shortcutMatches = [...bbcode.html.matchAll(shortcutRegex)];
 
