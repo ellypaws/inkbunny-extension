@@ -321,7 +321,7 @@
                     addCustomStyles();
 
                     if (item.submission.metadata.ai_submission && item.ticket.responses[0]?.message) {
-                        displayMessage(contentDiv, item.ticket.responses[0].message);
+                        displayMessage(contentDiv, item.ticket.responses[0].message)
                         displayShowAllSubmissionsButton(contentDiv, item);
                     } else {
                         displayOverrideButton(contentDiv, item.ticket.responses[0]?.message);
@@ -565,27 +565,52 @@
         });
     }
 
-    function parseBBCodeToHTML(bbcode) {
-        const urlRegex = /(?<!\[url=)(https?:\/\/[^\s]+)/g;
-        bbcode = bbcode.replace(urlRegex, '[url=$1]$1[/url]');
-
-        const ibName = /ib!(\w+)/g;
-        bbcode = bbcode.replace(ibName, '[name]$1[/name]');
-
-        const bbTagReplacements = {
-            '<': '&lt;',
-            '>': '&gt;',
-            '\n': '<br>',
-            '\\[b\\](.*?)\\[/b\\]': '<strong>$1</strong>',
-            '\\[i\\](.*?)\\[/i\\]': '<em>$1</em>',
-            '\\[u\\](.*?)\\[/u\\]': '<span class="underline">$1</span>',
-            '\\[url=(.*?)\\](.*?)\\[/url\\]': '<a href="$1" rel="nofollow">$2</a>',
-            '\\[name\\](.*?)\\[/name\\]': '<a class="widget_userNameSmall watching" href="/$1">$1</a>',
-            '\ib!\w+\b': '<a class="widget_userNameSmall watching" href="/$&">$&</a>',
-            '\\[q=(.*?)\\](.*?)\\[/q\\]': '<div class="bbcode_quote"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="bbcode_quote_symbol" rowspan="2">"</td><td class="bbcode_quote_author">$1 wrote:</td></tr><tr><td class="bbcode_quote_quote">$2</td></tr></tbody></table></div>',
-            '\\[color=(.*?)\\](.*?)\\[/color\\]': '<span style="color: $1;">$2</span>',
-            '\\[s](.*?)\\[/s\\]': '<hr />',
-            '@(\\w+)': (match, username) => {
+    const bbTagReplacements = [
+        {pattern: new RegExp(/</g), replacement: '&lt;'},
+        {pattern: new RegExp(/>/g), replacement: '&gt;'},
+        {
+            pattern: new RegExp(/\n/g),
+            replacement: '<br>'
+        },
+        {
+            pattern: new RegExp(/\[code]([^\[]*?)\[\/code]/g),
+            replacement: (match, code) => `<pre>${code}</pre>`
+        },
+        {pattern: new RegExp(/\[b]/g), replacement: '<strong>'},
+        {pattern: new RegExp(/\[\/b]/g), replacement: '</strong>'},
+        {pattern: new RegExp(/\[i]/g), replacement: '<em>'},
+        {pattern: new RegExp(/\[\/i]/g), replacement: '</em>'},
+        {pattern: new RegExp(/\[u]/g), replacement: '<span class="underline">'},
+        {pattern: new RegExp(/\[\/u]/g), replacement: '</span>'},
+        {pattern: new RegExp(/\[s]/g), replacement: '<span class="strikethrough">'},
+        {pattern: new RegExp(/\[\/s]/g), replacement: '</span>'},
+        {pattern: new RegExp(/\[t]/g), replacement: '<span class="font_title">'},
+        {pattern: new RegExp(/\[\/t]/g), replacement: '</span>'},
+        {pattern: new RegExp(/\[left]/g), replacement: '<div class="align_left">'},
+        {pattern: new RegExp(/\[\/left]/g), replacement: '</div>'},
+        {pattern: new RegExp(/\[center]/g), replacement: '<div class="align_center">'},
+        {pattern: new RegExp(/\[\/center]/g), replacement: '</div>'},
+        {pattern: new RegExp(/\[right]/g), replacement: '<div class="align_right">'},
+        {pattern: new RegExp(/\[\/right]/g), replacement: '</div>'},
+        {pattern: new RegExp(/\[color=(.*?)]/g), replacement: '<span style="color: $1;">'},
+        {pattern: new RegExp(/\[\/color]/g), replacement: '</span>'},
+        {
+            pattern: new RegExp(/\[q]/g),
+            replacement: '<div class="bbcode_quote"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="bbcode_quote_symbol" rowspan="2">"</td><td class="bbcode_quote_quote">'
+        },
+        {
+            pattern: new RegExp(/\[q=(.*?)]/g),
+            replacement: '<div class="bbcode_quote"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="bbcode_quote_symbol" rowspan="2">"</td><td class="bbcode_quote_author">$1 wrote:</td></tr><tr><td class="bbcode_quote_quote">'
+        },
+        {pattern: new RegExp(/\[\/q]/g), replacement: '</td></tr></tbody></table></div>'},
+        {pattern: new RegExp(/\[url=(.*?)](.*?)\[\/url]/g), replacement: '<a href="$1" rel="nofollow">$2</a>'},
+        {
+            pattern: new RegExp(/\[name](.*?)\[\/name]/g),
+            replacement: '<a class="widget_userNameSmall watching" href="/$1">$1</a>'
+        },
+        {
+            pattern: new RegExp(/@(\w+)/g),
+            replacement: (match, username) => {
                 const avatarImage = document.querySelector("#pictop > table > tbody > tr > td:nth-child(2) > div > table > tbody > tr:nth-child(1) > td > table > tbody > tr > td > div > a > img");
                 const avatarSrc = avatarImage ? avatarImage.src : 'https://jp.ib.metapix.net/images80/usericons/small/noicon.png'
                 return `<table style="display: inline-block; vertical-align: bottom;">
@@ -601,16 +626,27 @@
                                 <span style="position: relative; top: 2px;"><a href="https://inkbunny.net/${username}" class="widget_userNameSmall">${username}</a></span>
                             </td>
                         </tr>
-                        </tbody></table>`;
+                        </tbody></table>`
             }
-        };
+        },
+    ];
 
-        for (const [bbTag, htmlTag] of Object.entries(bbTagReplacements)) {
-            const regExp = new RegExp(bbTag, 'gi');
-            if (typeof htmlTag === 'function') {
-                bbcode = bbcode.replace(regExp, htmlTag);
+    function parseBBCodeToHTML(bbcode) {
+        const urlRegex = /(?<!\[url=)(https?:\/\/\S+)/g;
+        bbcode = bbcode.replace(urlRegex, '[url=$1]$1[/url]');
+
+        const ibName = /ib!(\w+)/g;
+        bbcode = bbcode.replace(ibName, '[name]$1[/name]');
+
+        for (const {pattern, replacement} of bbTagReplacements) {
+            if (typeof replacement === 'function') {
+                const matches = [...bbcode.matchAll(pattern)];
+                for (const match of matches) {
+                    const replacementHtml = replacement(...match);
+                    bbcode = bbcode.replace(match[0], replacementHtml);
+                }
             } else {
-                bbcode = bbcode.replace(regExp, htmlTag);
+                bbcode = bbcode.replace(pattern, replacement);
             }
         }
 
