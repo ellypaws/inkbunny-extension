@@ -57,6 +57,10 @@ It constructs a prepared ticket based on the heuristics for you to audit and mod
 
 ![Ticket](../doc/ticket.png)
 
+## Live BBCode Preview
+
+You can quickly preview the BBCode while writing comments, editing a submission description, creating a journal entry, or writing a ticket. The script is available as [Inkbunny Live BBCode Preview.user.js](Inkbunny%20Live%20BBCode%20Preview.user.js).
+
 <details>
 <summary>Full api server</summary>
 
