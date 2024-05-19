@@ -317,17 +317,17 @@
 
             if (currentPageSubmissionId === item.id) {
                 const contentDiv = document.querySelector("body > div.elephant.elephant_bottom.elephant_white > div.content");
-                if (contentDiv) {
-                    addCustomStyles();
-
-                    if (item.submission.metadata.ai_submission && item.ticket.responses[0]?.message) {
-                        displayMessage(contentDiv, item.ticket.responses[0].message)
-                        displayShowAllSubmissionsButton(contentDiv, item);
-                    } else {
-                        displayOverrideButton(contentDiv, item.ticket.responses[0]?.message);
-                    }
-                } else {
+                if (!contentDiv) {
                     console.error('Could not find div with class "content" to append message');
+                    return;
+                }
+                addCustomStyles();
+
+                if (item.submission.metadata.ai_submission && item.ticket.responses[0]?.message) {
+                    displayMessage(contentDiv, item.ticket.responses[0].message)
+                    displayShowAllSubmissionsButton(contentDiv, item);
+                } else {
+                    displayOverrideButton(contentDiv, item.ticket.responses[0]?.message);
                 }
             }
         });
