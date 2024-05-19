@@ -329,10 +329,10 @@
                 addCustomStyles();
 
                 if (item.submission.metadata.ai_submission) {
-                    displayMessage(contentDiv, item.ticket.responses[0].message)
+                    displayMessage(contentDiv, item)
                     displayShowAllSubmissionsButton(contentDiv, item);
                 } else {
-                    displayOverrideButton(contentDiv, item.ticket.responses[0]?.message);
+                    displayOverrideButton(contentDiv, item);
                 }
             }
         });
@@ -385,10 +385,14 @@
         }
     }
 
-    function displayMessage(contentDiv, message) {
+    function displayMessage(contentDiv, item) {
+        const message = item.ticket?.responses[0]?.message || 'No message found in ticket response';
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message-div copyable';
-        messageDiv.innerHTML = message.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+        messageDiv.innerHTML = message
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/\n/g, '<br>');
 
         contentDiv.appendChild(messageDiv);
         initializeCopyFeature(messageDiv, message)
@@ -396,11 +400,53 @@
         const parsedBBCodeDiv = document.createElement('div');
         parsedBBCodeDiv.className = 'message-div';
         parsedBBCodeDiv.innerHTML = parseBBCodeToHTML(message);
-
         contentDiv.appendChild(parsedBBCodeDiv);
+
+        const thumbnailHtml = generateThumbnailHtml(item.inkbunny);
+        parsedBBCodeDiv.innerHTML = parsedBBCodeDiv.innerHTML.replace(`#M${item.inkbunny.submission_id}`, thumbnailHtml);
     }
 
-    function displayOverrideButton(contentDiv, message) {
+    /**
+     * @param {Object} submission
+     * @returns {string}
+     * @description Generates HTML for the thumbnail of a submission
+     * @example
+     * generateThumbnailHtml(submission)
+     * @returns {string} HTML string
+   */
+    function generateThumbnailHtml(submission) {
+        const size = 'medium';
+        const page = '1'
+        const image = {
+            url: submission[`thumbnail_url_${size}_noncustom`] || submission[`thumbnail_url_${size}`] || submission.file_url_preview,
+            width: submission[`thumb_${size}_noncustom_x`] || submission[`thumb_${size}_x`],
+            height: submission[`thumb_${size}_noncustom_y`] || submission[`thumb_${size}_y`],
+        }
+
+        const multiPage = submission.files.length > 1;
+
+        const multiPageLip = `
+        <div title="Submission has ${submission.pagecount} pages" style="width: ${image.width}px; height: ${image.height}px; position: absolute; bottom: 0px; right: -1px; background-image: url(https://jp.ib.metapix.net/images80/overlays/multipage_large.png); background-position: bottom right; background-repeat: no-repeat;"></div>
+        <div title="Submission has ${submission.pagecount} pages" style=" position: absolute; bottom: 0px; right: 2px; color: #333333; font-size: 10pt;">+${submission.pagecount}</div>`;
+
+        return `<table style="display: inline-block;">
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div class="widget_imageFromSubmission" style="width: ${image.width}px; height: ${image.height}px; position: relative; margin: 0px auto;">
+                                    <a href="/s/${submission.submission_id}${page ? `-p${page}-` : ''}" style="border: 0px;">
+                                        <img src="${image.url}" width="${image.width}" height="${image.height}" title="${submission.title} ${page ? `[Page ${page}]` : '1'} by ${submission.username}" alt="${submission.title} ${page ? `[Page ${page}]` : '1'} by ${submission.username}" style="position: relative; border: 0px;" class="shadowedimage">
+                                        ${multiPage ? multiPageLip : ''}
+                                        <div class="badge-container" style="display: grid; grid-template-columns: auto auto; gap: 4px; position: absolute; top: 5px; left: 5px;"></div>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>`;
+    }
+
+    function displayOverrideButton(contentDiv, item) {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message-div';
         messageDiv.style.display = 'flex';
@@ -416,9 +462,7 @@
         overrideButton.style.padding = '5px 10px';
         overrideButton.onclick = () => {
             contentDiv.removeChild(messageDiv);
-            if (message) {
-                displayMessage(contentDiv, message);
-            }
+            displayMessage(contentDiv, item);
         };
 
         messageDiv.appendChild(overrideButton);
@@ -466,7 +510,7 @@
                 .then(data => {
                     console.log('Received data:', data);
 
-                    const message = data?.ticket?.responses[0]?.message
+                    const message = data?.ticket?.responses[0]?.message || 'No message found in ticket response';
 
                     const ticketContainer = document.createElement('div');
                     ticketContainer.className = 'message-div copyable';
