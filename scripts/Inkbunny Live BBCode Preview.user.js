@@ -238,7 +238,7 @@
     }
 
     const thumbRegex = /\[(small|medium|large|huge)thumb\](\d+)(?:,(\d+))?\[\/\1thumb\]/g;
-    const shortcutRegex = /#(S|M|L|H)(\d+)(?:,(\d+))?/g;
+    const shortcutRegex = /#([SMLH])(\d+)(?:,(\d+))?/g;
 
     const bbTagIcons = [
         {pattern: new RegExp(/\[icon](.*?)\[\/icon]/g), replacement: async (match, username) => createIcon(username)},
