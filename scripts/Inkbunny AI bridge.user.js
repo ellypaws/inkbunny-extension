@@ -413,7 +413,7 @@
      * @example
      * generateThumbnailHtml(submission)
      * @returns {string} HTML string
-   */
+     */
     function generateThumbnailHtml(submission) {
         const size = 'medium';
         const page = '1'
