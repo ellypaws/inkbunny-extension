@@ -183,34 +183,58 @@
         }
 
         const isMultiPage = submission.pagecount && submission.pagecount > 1;
-        const multiPageLip = isMultiPage ? `
-        <div title="Submission has ${submission.pagecount} pages" style="width: ${image.width}px; height: ${image.height}px; position: absolute; bottom: 0px; right: -1px; background-image: url(https://jp.ib.metapix.net/images80/overlays/multipage_large.png); background-position: bottom right; background-repeat: no-repeat;"></div>
-        <div title="Submission has ${submission.pagecount} pages" style=" position: absolute; bottom: 0px; right: 2px; color: #333333; font-size: 10pt;">+${submission.pagecount}</div>` : '';
+        const multiPageLip = `
+        <div title="Submission has ${submission.pagecount} pages"
+             style="
+                 width: ${image.width}px;
+                 height: ${image.height}px;
+                 position: absolute;
+                 bottom: 0px;
+                 right: -1px;
+                 background-image: url(https://jp.ib.metapix.net/images80/overlays/multipage_large.png);
+                 background-position: bottom right;
+                 background-repeat: no-repeat;"></div>
+        <div title="Submission has ${submission.pagecount} pages"
+             style="
+                 position: absolute;
+                 bottom: 0px;
+                 right: 2px;
+                 color: #333333;
+                 font-size: 10pt;">+${submission.pagecount}
+        </div>`;
 
         if (!image) {
             throw new Error('No image found');
         }
 
-        function generateThumbnailHtml(image, page) {
-            return `
-            ${!isMultiPage ? `<img src="${image.url}" alt="Thumbnail" />` : `
-                <table style="display: inline-block;">
-                    <tbody>
-                        <tr>
-                            <td>
-                                <div class="widget_imageFromSubmission" style="width: ${image.width}px; height: ${image.height}px; position: relative; margin: 0px auto;">
-                                    <a href="/s/${submission.submission_id}${page ? `-p${page}-` : ''}" style="border: 0px;">
-                                        <img src="${image.url}" width="${image.width}" height="${image.height}" title="${submission.title} ${page ? `[Page ${page}]` : '1'} by ${submission.username}" alt="${submission.title} ${page ? `[Page ${page}]` : '1'} by ${submission.username}" style="position: relative; border: 0px;" class="shadowedimage">
-                                        ${multiPageLip}
-                                        <div class="badge-container" style="display: grid; grid-template-columns: auto auto; gap: 4px; position: absolute; top: 5px; left: 5px;"></div>
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>`}`;
-        }
-        return generateThumbnailHtml(image, page);
+        return `
+            <table style="display: inline-block;"><tbody><tr><td>
+                <div class="widget_imageFromSubmission"
+                     style="
+                        width: ${image.width}px;
+                        height: ${image.height}px;
+                        position: relative;
+                        margin: 0px auto;">
+                    <a href="/s/${submission.submission_id}${page ? `-p${page}-` : ''}" style="border: 0px;">
+                        <img src="${image.url}" 
+                             width="${image.width}" 
+                             height="${image.height}" 
+                             title="${submission.title} ${page ? `[Page ${page}]` : '1'} by ${submission.username}" 
+                             alt="${submission.title} ${page ? `[Page ${page}]` : '1'} by ${submission.username}" 
+                             style="position: relative; border: 0px;" 
+                             class="shadowedimage">
+                        ${isMultiPage ? multiPageLip : ''}
+                        <div class="badge-container"
+                             style="
+                                 display: grid;
+                                 grid-template-columns: auto auto;
+                                 gap: 4px;
+                                 position: absolute;
+                                 top: 5px;
+                                 left: 5px;
+                             ">
+                </div></a></div>
+            </td></tr></tbody></table>`;
     }
 
     const thumbRegex = /\[(small|medium|large|huge)thumb\](\d+)(?:,(\d+))?\[\/\1thumb\]/g;
