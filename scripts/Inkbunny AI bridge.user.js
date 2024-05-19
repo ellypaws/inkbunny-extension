@@ -321,9 +321,14 @@
                     console.error('Could not find div with class "content" to append message');
                     return;
                 }
+                if (!item.ticket?.responses[0]?.message) {
+                    console.error('No message found in ticket response');
+                    return;
+                }
+
                 addCustomStyles();
 
-                if (item.submission.metadata.ai_submission && item.ticket.responses[0]?.message) {
+                if (item.submission.metadata.ai_submission) {
                     displayMessage(contentDiv, item.ticket.responses[0].message)
                     displayShowAllSubmissionsButton(contentDiv, item);
                 } else {
