@@ -177,9 +177,9 @@
             if (!file) {
                 console.error(`Page ${page} not found for submission ID: ${submission.submission_id}`, submission);
             }
-            image.url = file ? file[`thumbnail_url_${size}_noncustom`] || file[`thumbnail_url_${size}`] || file.file_url_preview : null;
-            image.width = file ? file[`thumb_${size}_noncustom_x`] || file[`thumb_${size}_x`] : null;
-            image.height = file ? file[`thumb_${size}_noncustom_y`] || file[`thumb_${size}_y`] : null;
+            image.url = file ? file[`thumbnail_url_${size}_noncustom`] || file[`thumbnail_url_${size}`] || file.file_url_preview : image.url;
+            image.width = file ? file[`thumb_${size}_noncustom_x`] || file[`thumb_${size}_x`] : image.width;
+            image.height = file ? file[`thumb_${size}_noncustom_y`] || file[`thumb_${size}_y`] : image.height;
         }
 
         const isMultiPage = submission.pagecount && submission.pagecount > 1;
