@@ -339,6 +339,7 @@
     const bbTagReplacements = [
         {pattern: new RegExp(/</g), replacement: '&lt;'},
         {pattern: new RegExp(/>/g), replacement: '&gt;'},
+        {pattern: new RegExp(/(?<= |\[\w]) /g), replacement: '&nbsp;'},
         {pattern: new RegExp(/\[b]/g), replacement: '<strong>'},
         {pattern: new RegExp(/\[\/b]/g), replacement: '</strong>'},
         {pattern: new RegExp(/\[i]/g), replacement: '<em>'},
