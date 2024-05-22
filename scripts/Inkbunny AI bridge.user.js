@@ -423,7 +423,7 @@
             height: submission[`thumb_${size}_noncustom_y`] || submission[`thumb_${size}_y`],
         }
 
-        const multiPage = submission.files.length > 1;
+        const multiPage = submission.pagecount > 1 || submission.files?.length > 1;
 
         const multiPageLip = `
         <div title="Submission has ${submission.pagecount} pages" style="width: ${image.width}px; height: ${image.height}px; position: absolute; bottom: 0px; right: -1px; background-image: url(https://jp.ib.metapix.net/images80/overlays/multipage_large.png); background-position: bottom right; background-repeat: no-repeat;"></div>
@@ -444,6 +444,32 @@
                         </tr>
                     </tbody>
                 </table>`;
+    }
+
+    /**
+     * returns a []struct{searchValue, replaceValue}
+     * @param {Array<Object>} thumbnails
+     * @returns {Array<{searchValue: string, replaceValue: string}>}
+     * @description Generates HTML for the thumbnail of a report
+     */
+    function reportThumbnail(thumbnails) {
+        if (!thumbnails) {
+            console.error('No thumbnails found');
+        }
+        return thumbnails.map(submission => {
+            return {
+                searchValue: `#M${submission.id}`,
+                replaceValue: generateThumbnailHtml({
+                    url: `https://inkbunny.net/s/${submission.id}`,
+                    submission_id: submission.id,
+                    title: submission.title,
+                    pagecount: submission.pagecount,
+                    thumbnail_url_medium_noncustom: submission.thumbnail_url,
+                    thumb_medium_noncustom_x: submission.thumbnail_width,
+                    thumb_medium_noncustom_y: submission.thumbnail_height,
+                })
+            }
+        })
     }
 
     function displayOverrideButton(contentDiv, item) {
@@ -522,6 +548,11 @@
                     parsedBBCodeDiv.className = 'message-div';
                     parsedBBCodeDiv.innerHTML = parseBBCodeToHTML(message);
                     contentDiv.appendChild(parsedBBCodeDiv);
+
+                    const replacements = reportThumbnail(data?.thumbnails);
+                    replacements.forEach(({searchValue, replaceValue}) => {
+                        parsedBBCodeDiv.innerHTML = parsedBBCodeDiv.innerHTML.replace(searchValue, replaceValue);
+                    });
                 })
                 .catch(error => console.error('Error fetching data from API:', error));
         };
