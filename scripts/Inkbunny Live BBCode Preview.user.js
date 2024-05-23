@@ -321,6 +321,11 @@
                 return;
             }
 
+            if (thumbnails.length !== matchesData.length) {
+                console.error(`Mismatch in thumbnail count: ${thumbnails.length} vs ${matchesData.length}`);
+                return;
+            }
+
             matchesData.forEach((data, i) => {
                 const html = thumbnails[i];
                 if (!html) {
