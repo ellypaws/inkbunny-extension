@@ -34,6 +34,14 @@
 
     window.addEventListener("load", start);
 
+    /**
+     * @typedef {Object} user
+     * @property {string} username
+     * @property {string} sid
+     * @property {number} user_id
+     * @property {string} ratingsmask
+     */
+
     function start() {
         badgeStyle();
         loaderStyle();
