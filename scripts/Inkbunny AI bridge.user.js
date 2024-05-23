@@ -63,7 +63,7 @@
         }
 
         if (!user) {
-            console.log('Logged out from extension, you can click on the login menu');
+            console.log('Logged out from AI Bridge. You can login using the menu');
         } else {
             console.log('User found:', user);
             collectDataAndPost();
