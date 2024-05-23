@@ -473,7 +473,13 @@
         if (!thumbnails) {
             console.error('No thumbnails found');
         }
-        return thumbnails.map(submission => {
+        return thumbnails.filter(thumbnail => {
+            if (!thumbnail.thumbnail_url) {
+                console.error('No thumbnail URL found for:', thumbnail);
+                return false
+            }
+            return true
+        }).map(submission => {
             return {
                 searchValue: `#M${submission.id}`,
                 replaceValue: generateThumbnailHtml({
