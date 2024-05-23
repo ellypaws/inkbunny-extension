@@ -43,7 +43,11 @@
     // Get SID from storage
     const sid = GM_getValue('sid', '');
 
-    // Function to get the icon URL for a username
+    /**
+     * Fetches the icon URL for the given username
+     * @param {string} username
+     * @returns {Promise<string>}
+     */
     async function getIconUrl(username) {
         if (cachedUserIcons[username]) {
             return cachedUserIcons[username];
@@ -498,7 +502,12 @@
         });
     }
 
-    // Function to create the icon HTML
+    /**
+     *
+     * @param {string} username
+     * @param {boolean} includeName
+     * @returns {Promise<string>}
+     */
     async function createIcon(username, includeName = false) {
         const iconUrl = await getIconUrl(username);
         return `<table style="display: inline-block; vertical-align:bottom;">
