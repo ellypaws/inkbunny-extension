@@ -51,7 +51,7 @@
         }
 
         let shownLoggedOut = GM_getValue('shownLoggedOut', false);
-        let user = GM_getValue('user');
+        const user = GM_getValue('user');
 
         if (user !== undefined) {
             shownLoggedOut = true;
