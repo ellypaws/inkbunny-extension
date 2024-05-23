@@ -323,6 +323,9 @@
 
             matchesData.forEach((data, i) => {
                 const html = thumbnails[i];
+                if (!html) {
+                    return;
+                }
                 bbcode.html = bbcode.html.replace(data.match[0], html);
                 thumbnailCount++;
             });
