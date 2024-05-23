@@ -595,6 +595,110 @@
         textarea.addEventListener('keydown', handleKeyDown);
     }
 
+    /**
+     * @typedef {Object} avatar
+     * @property {string} username
+     * @property {string} iconUrl
+     */
+
+    /**
+     * The function to generate the preview HTML and returns the element to mutate the innerHTML
+     * @param {avatar} user
+     * @returns
+     */
+    function commentPreview(user) {
+        return `<div class="widget_commentsList_comment">
+            <div class="widget_commentsList_comment_usericon">
+                <div style="width: 100px; height: 100px; position: relative; margin: 0px auto;">
+                    <a style="position: relative; border: 0px;" href="https://inkbunny.net/${user.username}">
+                        <img class="shadowedimage" style="border: 0px;" src="${user.iconUrl}" width="100" height="100" alt="${user.username}" title="${user.username}">
+                    </a>
+                </div>
+            </div>
+            <div class="widget_commentsList_comment_details">
+                <div class="widget_commentsList_comment_details_username">
+                    <span class="widget_userNameSmall "><a class="widget_userNameSmall" href="/Elly">Elly</a></span>
+                </div>
+
+                <div currentdatetype="elapsed" class="widget_commentsList_comment_details_date">a moment ago</div>
+                <div currentdatetype="exact" class="widget_commentsList_comment_details_date" style="display: none;">${new Date().toISOString()}</div>
+
+                <div class="widget_commentsList_comment_details_links">
+                    <a class="widget_commentsList_comment_reply_link" username="${user.username}" title="Reply to comment" style="cursor: not-allowed;">reply</a>
+                    <a class="widget_commentsList_comment_edit_link" title="Edit comment" username="${user.username}" style="cursor: not-allowed;">edit</a>
+                    <a title="Link (Right Click)" style="cursor: not-allowed;">link</a>
+                </div>
+            </div>
+            <div style="width: 648px; float: left; padding-left: 16px;">
+
+                <div style="min-height: 80px; position: relative; padding: 10px; border: 2px solid #babdb6; background-color: #d3d7cf; border-radius: 10px; box-shadow: 0 5px 5px -5px black;">
+
+                    <div style="width: 10px; height: 20px; position: absolute; left: -10px; top: 40px; background-image: url('https://jp.ib.metapix.net/images80/comments/tail.png');"></div>
+
+                    <div style="color: #333333;">
+                        <div id="bbcode_preview">
+                        </div>
+                        <div id="placeholder" style="word-wrap: break-word; color: #555; text-align: center; top: 33px; position: relative;">Start typing to preview</div>
+                        <div style="clear: both;"></div>
+                    </div>
+                </div>
+
+            </div>
+            <div style="clear: both;"></div>
+        </div>`
+    }
+
+    async function updatePreview(placeholder, textarea, previewDiv) {
+        placeholder.style.display = 'none';
+
+        const bbcode = textarea.value.split('\n').map(line => ({line: line, html: line}));
+        console.time('Parsing BBCode preview');
+        await bbcodeToHtml(bbcode);
+        previewDiv.innerHTML = bbcode.map(bbcode => bbcode.html).join('<br>');
+        console.timeEnd('Parsing BBCode preview');
+
+        // Call updateThumbnails after setting innerHTML
+        console.time('Updating thumbnails');
+        await updateThumbnails(bbcode, previewDiv);
+        console.timeEnd('Updating thumbnails');
+    }
+
+    function createCommentPreview(textarea, referenceNode) {
+        if (!textarea) {
+            console.error('Textarea not found');
+            return;
+        }
+        if (!referenceNode) {
+            console.error('Reference node not found');
+            return;
+        }
+
+        const previewArea = document.createElement('div');
+        const avatarImage = document.querySelector('.loggedin_userdetails img');
+        const avatar = {
+            iconUrl: avatarImage.src.replace('tiny', 'large'),
+            username: avatarImage.title
+        }
+
+        previewArea.innerHTML = commentPreview(avatar)
+        const previewDiv = previewArea.querySelector('#bbcode_preview');
+        const placeholder = previewArea.querySelector('#placeholder');
+
+        referenceNode.parentNode.insertBefore(previewArea, referenceNode.nextSibling);
+
+        addKeydownListenerToTextarea(textarea);
+        textarea.addEventListener('input', async () => {
+            if (textarea.value.trim() === '') {
+                previewDiv.innerHTML = '';
+                placeholder.style.display = 'block';
+            } else await updatePreview(placeholder, textarea, previewDiv);
+        });
+
+        if (textarea.value.trim() !== '') {
+            textarea.dispatchEvent(new Event('input'));
+        }
+    }
+
     // Function to create the preview area
     function createPreviewArea(textarea, referenceNode) {
         if (!textarea) {
@@ -642,20 +746,7 @@
                 placeholder.style.display = 'block';
                 previewDiv.innerHTML = '';
                 previewDiv.appendChild(placeholder);
-            } else {
-                placeholder.style.display = 'none';
-
-                const bbcode = textarea.value.split('\n').map(line => ({line: line, html: line}));
-                console.time('Parsing BBCode preview');
-                await bbcodeToHtml(bbcode);
-                previewDiv.innerHTML = bbcode.map(bbcode => bbcode.html).join('<br>');
-                console.timeEnd('Parsing BBCode preview');
-
-                // Call updateThumbnails after setting innerHTML
-                console.time('Updating thumbnails');
-                await updateThumbnails(bbcode, previewDiv);
-                console.timeEnd('Updating thumbnails');
-            }
+            } else await updatePreview(placeholder, textarea, previewDiv);
         });
 
         if (textarea.value.trim() !== '') {
@@ -683,8 +774,8 @@
         const commentTextarea = document.querySelector('#comment');
         if (commentTextarea) {
             // get the previous sibling of #replybutton parent
-            const commentReferenceNode = document.querySelector('#replybutton').parentNode.previousSibling;
-            createPreviewArea(commentTextarea, commentReferenceNode);
+            const commentReferenceNode = document.querySelector('#replybutton').parentNode.nextSibling;
+            createCommentPreview(commentTextarea, commentReferenceNode);
         }
     });
 
