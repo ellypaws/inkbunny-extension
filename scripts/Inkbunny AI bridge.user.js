@@ -455,10 +455,19 @@
     }
 
     /**
-     * returns a []struct{searchValue, replaceValue}
-     * @param {Array<Object>} thumbnails
+     * @typedef {Object} Thumbnail
+     * @property {string} id - Submission ID
+     * @property {string} title - Submission title
+     * @property {number} pagecount - Number of pages in submission
+     * @property {string} thumbnail_url - URL of the thumbnail (medium noncustom)
+     * @property {number} thumbnail_width - Width of the thumbnail (x)
+     * @property {number} thumbnail_height - Height of the thumbnail (y)
+     */
+
+    /**
+     * @param {Array<Thumbnail>} thumbnails
      * @returns {Array<{searchValue: string, replaceValue: string}>}
-     * @description Generates HTML for the thumbnail of a report
+     * @description Generates an HTML {@link String} for a {@link Thumbnail}[] object
      */
     function reportThumbnail(thumbnails) {
         if (!thumbnails) {
