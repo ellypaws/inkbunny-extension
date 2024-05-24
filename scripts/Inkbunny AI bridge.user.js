@@ -789,13 +789,13 @@
 
     function applyLabelsAndBadges(link, item) {
         if (item.submission.metadata.ai_submission) {
-            if (item.submission.metadata.assisted) {
-                addLabel(link, 'Assisted*');
-            } else {
+            if (item.submission.metadata.generated) {
                 addLabel(link, 'AI');
                 if (item.ticket?.labels) {
                     addBadges(link, item.ticket.labels);
                 }
+            } else if (item.submission.metadata.assisted) {
+                addLabel(link, 'Assisted*');
             }
         }
     }
