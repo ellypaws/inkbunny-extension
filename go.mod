@@ -3,8 +3,8 @@ module github.com/ellypaws/inkbunny-app/extension
 go 1.22.3
 
 require (
-	github.com/ellypaws/inkbunny-app v0.0.0-20240514175556-d733695d3f7e
-	github.com/ellypaws/inkbunny-sd v0.0.0-20240514145251-edf619312d99
+	github.com/ellypaws/inkbunny-app v0.0.0-20240526150952-eaff735da637
+	github.com/ellypaws/inkbunny-sd v0.0.0-20240526145940-946d43b59a11
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/labstack/gommon v0.4.2
 	github.com/muesli/termenv v0.15.2
@@ -17,7 +17,7 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/ellypaws/inkbunny/api v0.0.0-20240505180909-24d168283264 // indirect
+	github.com/ellypaws/inkbunny/api v0.0.0-20240521065300-7d34160ddf2d // indirect
 	github.com/gitsight/go-echo-cache v1.0.1 // indirect
 	github.com/go-errors/errors v1.5.1 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
@@ -34,17 +34,17 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
-	golang.org/x/crypto v0.22.0 // indirect
+	golang.org/x/crypto v0.23.0 // indirect
 	golang.org/x/image v0.16.0 // indirect
-	golang.org/x/net v0.24.0 // indirect
+	golang.org/x/net v0.25.0 // indirect
 	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/text v0.15.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	modernc.org/gc/v3 v3.0.0-20240304020402-f0dba7c97c2b // indirect
-	modernc.org/libc v1.50.5 // indirect
+	modernc.org/libc v1.50.9 // indirect
 	modernc.org/mathutil v1.6.0 // indirect
 	modernc.org/memory v1.8.0 // indirect
-	modernc.org/sqlite v1.29.8 // indirect
+	modernc.org/sqlite v1.29.10 // indirect
 	modernc.org/strutil v1.2.0 // indirect
 	modernc.org/token v1.1.0 // indirect
 )
