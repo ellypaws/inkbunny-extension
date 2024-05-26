@@ -410,19 +410,29 @@
         parsedBBCodeDiv.innerHTML = parseBBCodeToHTML(message);
         contentDiv.appendChild(parsedBBCodeDiv);
 
-        const thumbnailHtml = generateThumbnailHtml(item.inkbunny);
+        const thumbnailHtml = generateThumbnailHtml({
+            inkbunny: item.inkbunny,
+            metadata: {
+                generated: item.submission.metadata.generated,
+                assisted: item.submission.metadata.assisted,
+                artists: item.submission.metadata.artists_used,
+                flags: item.ticket.labels,
+            }
+        })
         parsedBBCodeDiv.innerHTML = parsedBBCodeDiv.innerHTML.replace(`#M${item.inkbunny.submission_id}`, thumbnailHtml);
     }
 
     /**
-     * @param {Object} submission
+     * @param {Object} item
      * @returns {string}
      * @description Generates HTML for the thumbnail of a submission
      * @example
      * generateThumbnailHtml(submission)
      * @returns {string} HTML string
      */
-    function generateThumbnailHtml(submission) {
+    function generateThumbnailHtml(item) {
+        const submission = item.inkbunny;
+        const metadata = item.metadata;
         const size = 'medium';
         const page = '1'
         const image = {
@@ -437,15 +447,34 @@
         <div title="Submission has ${submission.pagecount} pages" style="width: ${image.width}px; height: ${image.height}px; position: absolute; bottom: 0px; right: -1px; background-image: url(https://jp.ib.metapix.net/images80/overlays/multipage_large.png); background-position: bottom right; background-repeat: no-repeat;"></div>
         <div title="Submission has ${submission.pagecount} pages" style=" position: absolute; bottom: 0px; right: 2px; color: #333333; font-size: 10pt;">+${submission.pagecount}</div>`;
 
+        const labels = metadata.ai_submission ? (metadata.generated ? '<span class="label default">AI</span>' : metadata.assisted ? '<span class="label assisted">Assisted*</span>' : '') : '';
+
+        const flags = metadata.flags?.map(flag => {
+            const [bgColor, textColor] = getPaletteForBadge(flag.replace(/_/g, ' '));
+            return `<span class="badge" style="background-color: ${bgColor}; color: ${textColor};">${flag.replace(/_/g, ' ')}</span>`;
+        }).join('') || '';
+
+        const artists = metadata.artists?.map(artist => {
+            if (artist.user_id) {
+                return `<a href="https://inkbunny.net/${artist.username}" target="_blank" class="badge widget_userNameSmall watching artist_used">${artist.username}</a>`;
+            } else {
+                return `<span class="badge artist_used unknown_artist">${artist.username} ?</span>`;
+            }
+        }).join('') || '';
+
         return `<table style="display: inline-block;">
                     <tbody>
                         <tr>
                             <td>
                                 <div class="widget_imageFromSubmission" style="width: ${image.width}px; height: ${image.height}px; position: relative; margin: 0px auto;">
-                                    <a href="/s/${submission.submission_id}${page ? `-p${page}-` : ''}" style="border: 0px;">
+                                    <a id="report-${submission.submission_id}" href="/s/${submission.submission_id}${page ? `-p${page}-` : ''}" style="border: 0px;">
                                         <img src="${image.url}" width="${image.width}" height="${image.height}" title="${submission.title} ${page ? `[Page ${page}]` : '1'} by ${submission.username}" alt="${submission.title} ${page ? `[Page ${page}]` : '1'} by ${submission.username}" style="position: relative; border: 0px;" class="shadowedimage">
                                         ${multiPage ? multiPageLip : ''}
-                                        <div class="badge-container" style="display: grid; grid-template-columns: auto auto; gap: 4px; position: absolute; top: 5px; left: 5px;"></div>
+                                        <div class="badge-container" style="display: grid; grid-template-columns: auto auto; gap: 4px; position: absolute; top: 5px; left: 5px;">
+                                            ${labels}
+                                            ${flags}
+                                            ${artists}
+                                        </div>
                                     </a>
                                 </div>
                             </td>
@@ -454,42 +483,74 @@
                 </table>`;
     }
 
-    /**
-     * @typedef {Object} Thumbnail
-     * @property {string} id - Submission ID
-     * @property {string} title - Submission title
-     * @property {number} pagecount - Number of pages in submission
-     * @property {string} thumbnail_url - URL of the thumbnail (medium noncustom)
-     * @property {number} thumbnail_width - Width of the thumbnail (x)
-     * @property {number} thumbnail_height - Height of the thumbnail (y)
+    /** @typedef {object} TicketReport
+     * @property {Report} report
+     * @property {Thumbnail[]} thumbnails
+     */
+
+    /** @typedef {object} Report
+     * @property {Submission[]} submissions
+     */
+
+    /** @typedef {object} Submission
+     * @property {string} title
+     * @property {string} url
+     * @property {boolean} generated
+     * @property {boolean} assisted
+     * @property {string[]} flags
+     * @property {File[]} files
+     * @property {Artist[]} artists
+     */
+
+    /** @typedef {object} Artist
+     * @property {string} username
+     */
+
+    /** @typedef {object} Thumbnail
+     * @property {number} id
+     * @property {string} title
+     * @property {number} pagecount
+     * @property {string} thumbnail_url
+     * @property {number} thumbnail_width
+     * @property {number} thumbnail_height
      */
 
     /**
-     * @param {Array<Thumbnail>} thumbnails
+     * @param {TicketReport} data
      * @returns {Array<{searchValue: string, replaceValue: string}>}
      * @description Generates an HTML {@link String} for a {@link Thumbnail}[] object
      */
-    function reportThumbnail(thumbnails) {
-        if (!thumbnails) {
+    function reportThumbnail(data) {
+        if (!data) {
             console.error('No thumbnails found');
         }
-        return thumbnails.filter(thumbnail => {
+        return data.thumbnails.filter(thumbnail => {
             if (!thumbnail.thumbnail_url) {
                 console.error('No thumbnail URL found for:', thumbnail);
                 return false
             }
             return true
-        }).map(submission => {
+        }).map(thumb => {
+            const url = `https://inkbunny.net/s/${thumb.id}`
+            const submission = data.report.submissions.find(sub => sub.url === url);
             return {
-                searchValue: `#M${submission.id}`,
+                searchValue: `#M${thumb.id}`,
                 replaceValue: generateThumbnailHtml({
-                    url: `https://inkbunny.net/s/${submission.id}`,
-                    submission_id: submission.id,
-                    title: submission.title,
-                    pagecount: submission.pagecount,
-                    thumbnail_url_medium_noncustom: submission.thumbnail_url,
-                    thumb_medium_noncustom_x: submission.thumbnail_width,
-                    thumb_medium_noncustom_y: submission.thumbnail_height,
+                    inkbunny: {
+                        url: url,
+                        submission_id: thumb.id,
+                        title: thumb.title,
+                        pagecount: thumb.pagecount,
+                        thumbnail_url_medium_noncustom: thumb.thumbnail_url,
+                        thumb_medium_noncustom_x: thumb.thumbnail_width,
+                        thumb_medium_noncustom_y: thumb.thumbnail_height,
+                    },
+                    metadata: {
+                        generated: submission?.generated,
+                        assisted: submission?.assisted,
+                        flags: submission?.flags,
+                        artists: submission?.artists,
+                    }
                 })
             }
         })
@@ -572,7 +633,7 @@
                     parsedBBCodeDiv.innerHTML = parseBBCodeToHTML(message);
                     contentDiv.appendChild(parsedBBCodeDiv);
 
-                    const replacements = reportThumbnail(data?.thumbnails);
+                    const replacements = reportThumbnail(data);
                     replacements.forEach(({searchValue, replaceValue}) => {
                         parsedBBCodeDiv.innerHTML = parsedBBCodeDiv.innerHTML.replace(searchValue, replaceValue);
                     });
