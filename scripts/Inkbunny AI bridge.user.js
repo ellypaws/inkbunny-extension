@@ -761,12 +761,6 @@
         if (!badgeContainer) {
             badgeContainer = document.createElement('div');
             badgeContainer.className = 'badge-container';
-            badgeContainer.style.display = 'grid';
-            badgeContainer.style.gridTemplateColumns = 'auto auto';
-            badgeContainer.style.gridGap = '4px';
-            badgeContainer.style.position = 'absolute';
-            badgeContainer.style.top = '5px';
-            badgeContainer.style.left = '5px';
             link.appendChild(badgeContainer);
         }
 
@@ -919,12 +913,6 @@
             if (!badgeContainer) {
                 badgeContainer = document.createElement('div');
                 badgeContainer.className = 'badge-container';
-                badgeContainer.style.display = 'grid';
-                badgeContainer.style.gridTemplateColumns = 'auto auto';
-                badgeContainer.style.gridGap = '4px';
-                badgeContainer.style.position = 'absolute';
-                badgeContainer.style.top = '5px';
-                badgeContainer.style.left = '5px';
                 submission.appendChild(badgeContainer);
             }
             badgeContainer.appendChild(createSkeletonLoader('default', submissionId));
