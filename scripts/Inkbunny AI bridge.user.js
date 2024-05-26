@@ -422,8 +422,32 @@
         parsedBBCodeDiv.innerHTML = parsedBBCodeDiv.innerHTML.replace(`#M${item.inkbunny.submission_id}`, thumbnailHtml);
     }
 
+    /** @typedef {object} Submission
+     * @property {number} submission_id
+     * @property {string} title
+     * @property {string} username
+     * @property {string} file_url_preview
+     * @property {number} pagecount
+     * @property {File[]} files
+     * @property {Artist[]} artists
+     * @property {string} url
+     */
+
+    /** @typedef {object} Metadata
+     * @property {boolean} ai_submission
+     * @property {boolean} generated
+     * @property {boolean} assisted
+     * @property {Artist[]} artists_used
+     * @property {string[]} flags
+     */
+
+    /** @typedef {object} Item
+     * @property {Submission} inkbunny
+     * @property {Metadata} metadata
+     */
+
     /**
-     * @param {Object} item
+     * @param {Item} item
      * @returns {string}
      * @description Generates HTML for the thumbnail of a submission
      * @example
