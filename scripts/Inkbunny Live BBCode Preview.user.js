@@ -448,7 +448,7 @@
 
                     const duration = Date.now() - timeNow;
                     if (duration > 10) {
-                        console.timeLog('Parsing BBCode preview', each.line, duration);
+                        console.warn('Parsing BBCode preview', each.line, duration);
                     }
                     continue
                 }
@@ -492,7 +492,7 @@
 
             const duration = Date.now() - timeNow;
             if (duration > 10) {
-                console.timeLog('Parsing BBCode preview', each.line, duration);
+                console.warn('Parsing BBCode preview', each.line, duration);
             }
         }
 
@@ -652,15 +652,12 @@
         placeholder.style.display = 'none';
 
         const bbcode = textarea.value.split('\n').map(line => ({line: line, html: line}));
-        console.time('Parsing BBCode preview');
+
         await bbcodeToHtml(bbcode);
         previewDiv.innerHTML = bbcode.map(bbcode => bbcode.html).join('<br>');
-        console.timeEnd('Parsing BBCode preview');
 
         // Call updateThumbnails after setting innerHTML
-        console.time('Updating thumbnails');
         await updateThumbnails(bbcode, previewDiv);
-        console.timeEnd('Updating thumbnails');
     }
 
     function createCommentPreview(textarea, referenceNode) {
