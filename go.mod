@@ -1,4 +1,4 @@
-module github.com/ellypaws/inkbunny-app/extension
+module github.com/ellypaws/inkbunny-extension
 
 go 1.22.3
 
