@@ -2,7 +2,7 @@
   <img src="https://inkbunny.net/images81/elephant/logo/bunny.png" width="100" />
   <img src="https://inkbunny.net/images81/elephant/logo/text.png" width="300" />
   <br>
-  <h1 align="center">Inkbunny AI Bridge</h1>
+  <h1 align="center">Inkbunny Extensions</h1>
 </p>
 
 <p align="center">
@@ -39,11 +39,29 @@
 
 <img src="https://go.dev/images/gophers/ladder.svg" width="48" alt="Go Gopher climbing a ladder." align="right">
 
-This project is designed to detect AI-generated images made with stable diffusion in Inkbunny submissions. It processes files and descriptions and uses heuristics to determine if the submission follows the [guidelines](https://wiki.inkbunny.net/wiki/ACP#AI).
+This project is a collection of userscripts and tools to enhance the Inkbunny experience.
+It includes a browser extension to detect AI-generated images and a live BBCode preview for Inkbunny.
+
+Inkbunny AI Bridge is designed to detect AI-generated images made with stable diffusion in Inkbunny submissions. It processes files and descriptions and uses heuristics to determine if the submission follows the [guidelines](https://wiki.inkbunny.net/wiki/ACP#AI).
 
 By using crafted [heuristics](https://github.com/ellypaws/inkbunny-sd),
 as well as the potential to use an LLM to inference the parameters.
 A general purpose [API](https://github.com/ellypaws/inkbunny-app) library is available to integrate with your own program logic.
+
+### Table of Contents
+
+1. [Live BBCode Preview](#live-bbcode-preview)
+2. [Inkbunny AI Bridge](#inkbunny-ai-bridge)
+3. [Installation Instructions](#installation-instructions)
+    - [Userscript](#userscript)
+    - [Server](#server)
+    - [Building from Source](#building-from-source)
+
+## Live BBCode Preview
+
+You can quickly preview the BBCode while writing comments, editing a submission description, creating a journal entry, or writing a ticket. The script is available as [Inkbunny Live BBCode Preview.user.js](Inkbunny%20Live%20BBCode%20Preview.user.js).
+
+![Live BBCode Preview](../doc/bbcode.png)
 
 ## Inkbunny AI Bridge
 
@@ -56,10 +74,6 @@ It displays a badge on each submission to quickly notify you of any potential fl
 It constructs a prepared ticket based on the heuristics for you to audit and modify to then submit to Inkbunny.
 
 ![Ticket](../doc/ticket.png)
-
-## Live BBCode Preview
-
-You can quickly preview the BBCode while writing comments, editing a submission description, creating a journal entry, or writing a ticket. The script is available as [Inkbunny Live BBCode Preview.user.js](Inkbunny%20Live%20BBCode%20Preview.user.js).
 
 <details>
 <summary>Full api server</summary>
