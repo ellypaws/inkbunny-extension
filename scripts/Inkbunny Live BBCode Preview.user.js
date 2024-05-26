@@ -125,30 +125,10 @@
         });
 
         if (misses.length > 0) {
-            // remove 11277 from missedIds misses.map
-            const missedIds = misses.map(dataItem => dataItem.submissionId).filter(id => id !== '11277').join(',');
+            const missedIds = misses.map(dataItem => dataItem.submissionId).join(',');
             console.log(`Fetching data for missed submission IDs: ${missedIds}`);
             const response = await fetch(`https://inkbunny.net/api_submissions.php?sid=${sid}&submission_ids=${missedIds}`);
             const apiData = await response.json();
-
-            const nullo = 'https://cdn.discordapp.com/attachments/408805738698506242/1243222285947764766/403237_starling_starnullosparkle_g-rated_latest_w_eyebrows_w_sparkle.png?ex=6650b07a&is=664f5efa&hm=3a28aa52df0a89719162b449961eaf9998c49177926a25e129ed0efe736eb30f&'
-            const starsparkle = 'https://cdn.discordapp.com/attachments/408805738698506242/1241695360204800081/403235_starling_starsparkle_m_rated_w_eyebrows_w_sparkle.png?ex=664b226b&is=6649d0eb&hm=8a7220d45777232edcac07488e03c1686b38441b0cf1845ec2d0e6504032de22&'
-            // add 11277 to the apiData.submissions
-            apiData.submissions.push({
-                submission_id: 11277,
-                username: 'starling',
-                thumbnail_url_medium: nullo,
-                thumb_medium_x: 143,
-                thumb_medium_y: 200,
-                pagecount: 2,
-                files: [
-                    {
-                        thumbnail_url_medium: nullo,
-                        thumb_medium_x: 143,
-                        thumb_medium_y: 200
-                    },
-                ]
-            })
 
             misses.forEach(dataItem => {
                 const submission = apiData.submissions.find(sub => sub.submission_id == dataItem.submissionId);
@@ -537,9 +517,7 @@
      * @returns {Promise<string>}
      */
     async function createIcon(username, includeName = false) {
-        const iconUrl = username === 'starling' ?
-            'https://jp.ib.metapix.net/usericons/large/99/99405_starling_small_face_transp.png' :
-            await getIconUrl(username)
+        const iconUrl = await getIconUrl(username);
         return `<table style="display: inline-block; vertical-align:bottom;">
                             <tr>
                                 <td style="vertical-align: middle; border: none;">
