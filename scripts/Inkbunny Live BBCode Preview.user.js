@@ -658,9 +658,9 @@
                     <div style="width: 10px; height: 20px; position: absolute; left: -10px; top: 40px; background-image: url('https://jp.ib.metapix.net/images80/comments/tail.png');"></div>
 
                     <div style="color: #333333;">
-                        <div id="bbcode_preview" style="overflow-wrap: break-word;">
+                        <div id="bbcode-preview" style="overflow-wrap: break-word;">
                         </div>
-                        <div id="placeholder" style="word-wrap: break-word; color: #555; text-align: center; top: 33px; position: relative;">Start typing to preview</div>
+                        <div id="bbcode-placeholder" style="word-wrap: break-word; color: #555; text-align: center; top: 33px; position: relative;">Start typing to preview</div>
                         <div style="clear: both;"></div>
                     </div>
                 </div>
@@ -700,8 +700,8 @@
         }
 
         previewArea.innerHTML = commentPreview(avatar)
-        const previewDiv = previewArea.querySelector('#bbcode_preview');
-        const placeholder = previewArea.querySelector('#placeholder');
+        const previewDiv = previewArea.querySelector('#bbcode-preview');
+        const placeholder = previewArea.querySelector('#bbcode-placeholder');
 
         referenceNode.parentNode.insertBefore(previewArea, referenceNode.nextSibling);
 
