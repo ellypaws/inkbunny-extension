@@ -753,28 +753,24 @@
     }
 
 
-    // Run the script when the page loads
-    window.addEventListener('load', () => {
-        function tryArea(textArea) {
-            if (textArea) {
-                const messageReferenceNode = textArea.nextSiblings()[1]
-                createPreviewArea(textArea, messageReferenceNode);
-                return true;
-            }
-            return false;
+    function tryArea(textArea) {
+        if (textArea) {
+            const messageReferenceNode = textArea.nextSiblings()[1]
+            createPreviewArea(textArea, messageReferenceNode);
+            return true;
         }
+        return false;
+    }
 
-        if (tryArea(document.querySelector('#message'))) return;
-        if (tryArea(document.querySelector('#desc'))) return;
-        if (tryArea(document.querySelector('#profile'))) return;
-        if (tryArea(document.querySelector('#content'))) return;
+    if (tryArea(document.querySelector('#message'))) return;
+    if (tryArea(document.querySelector('#desc'))) return;
+    if (tryArea(document.querySelector('#profile'))) return;
+    if (tryArea(document.querySelector('#content'))) return;
 
-        const commentTextarea = document.querySelector('#comment');
-        if (commentTextarea) {
-            // get the previous sibling of #replybutton parent
-            const commentReferenceNode = document.querySelector('#replybutton').parentNode.nextSibling;
-            createCommentPreview(commentTextarea, commentReferenceNode);
-        }
-    });
-
+    const commentTextarea = document.querySelector('#comment');
+    if (commentTextarea) {
+        // get the previous sibling of #replybutton parent
+        const commentReferenceNode = document.querySelector('#replybutton').parentNode.nextSibling;
+        createCommentPreview(commentTextarea, commentReferenceNode);
+    }
 })();
