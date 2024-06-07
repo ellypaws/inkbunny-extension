@@ -35,7 +35,7 @@ function addPreviewButton(row) {
     const previewTd = document.createElement("td");
     const previewButton = document.createElement("button");
     previewButton.innerHTML = "Preview";
-    previewButton.onclick = function () {
+    previewButton.onclick = async function () {
         // Remove existing preview row if present
         let existingPreview = row.nextElementSibling;
         if (existingPreview && existingPreview.classList.contains("preview-row")) {
@@ -46,14 +46,10 @@ function addPreviewButton(row) {
         const id = makeID(5);
         const previewRow = createPreviewRow(row, id);
         row.parentNode.insertBefore(previewRow, row.nextSibling);
-        console.log({
-            function: "addPreviewButton",
-            row,
-            previewRow,
-        });
+
         // Remove border-bottom from current row's cells
         removeBorderBottom(row);
-        loadPreviewContent(row, id)
+        await loadPreviewContent(row, id)
     };
     previewTd.appendChild(previewButton);
     row.appendChild(previewTd);
@@ -98,20 +94,20 @@ async function loadPreviewContent(row, id) {
     const ticketURL = row.querySelectorAll("td")[1].querySelector("a").href;
     const extrlDoc = await fetchFromURL(ticketURL);
     const responses = getResponses(extrlDoc);
-    // console.log({
-    //     function: "loadPreviewContent",
-    //     document: extrlDoc,
-    //     responses,
-    // });
+
     const previewDiv = document.getElementById(`preview-${id}`);
     if (!previewDiv) {
         console.error("Preview div not found!", {id});
         return;
     }
+
+    const lastResponse = responses[responses.length - 1];
+
     previewDiv.innerHTML = `<h3>Preview (${responses.length} responses)</h3>
-  <ul>${responses[0].author}</ul>
-  <ul>${responses[0].date}</ul>
-  <ul>${responses[0].content}</ul>`;
+  ${responses.some((response) => response.author === "Inkbunny Support Team") ? "<p style='color: #73d216;'>Support response detected</p>" : ""}
+  <ul>${lastResponse.author}</ul>
+  <ul>${lastResponse.date}</ul>
+  <ul>${lastResponse.content}</ul>`;
 }
 
 async function fetchFromURL(url) {
