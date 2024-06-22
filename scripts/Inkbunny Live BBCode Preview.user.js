@@ -14,10 +14,10 @@
 'use strict';
 
 (function main() {
-    if (tryArea(document.querySelector('#message'))) return;
-    if (tryArea(document.querySelector('#desc'))) return;
-    if (tryArea(document.querySelector('#profile'))) return;
-    if (tryArea(document.querySelector('#content'))) return;
+    if (tryArea('#message')) return;
+    if (tryArea('#desc')) return;
+    if (tryArea('#profile')) return;
+    if (tryArea('#content')) return;
 
     const commentTextarea = document.querySelector('#comment');
     if (commentTextarea) {
@@ -27,7 +27,8 @@
     }
 })();
 
-function tryArea(textArea) {
+function tryArea(query) {
+    const textArea = document.querySelector(query)
     if (textArea) {
         const messageReferenceNode = textArea.nextSiblings()[1]
         createPreviewArea(textArea, messageReferenceNode);
