@@ -306,10 +306,9 @@
     }
 
     function processApiResponse(data) {
-
         const currentPageMatch = window.location.pathname.match(/\/s\/(\d+)/);
         const currentPageSubmissionId = currentPageMatch ? currentPageMatch[1] : null;
-        const reportButton = !!document.querySelector('#report-button');
+        const reportButton = !!document.querySelector('.report-button');
 
         data.forEach(item => {
             const submissionLink = document.querySelector(`a[href="/s/${item.id}"]`);
@@ -418,11 +417,12 @@
 
         console.log('Adding report button to:', reportLocation);
 
+        const reportTools = document.createElement('span');
+        reportTools.style.marginRight = '25px';
+        reportLocation.prepend(reportTools);
+
         const reportLink = document.createElement('a');
-        reportLink.id = 'report-button';
         reportLink.href = '#';
-        reportLink.style.borderBottom = '1px dotted #999';
-        reportLink.style.color = '#999';
         reportLink.style.marginRight = '5px';
         reportLink.style.textDecoration = 'none';
         reportLink.style.display = 'inline-flex';
@@ -430,25 +430,16 @@
         reportLink.style.cursor = 'pointer';
 
         const reportText = document.createElement('span');
+        reportText.className = 'report-button';
         reportText.textContent = 'Report';
         reportLink.appendChild(reportText);
-
-        reportLink.onmouseover = function () {
-            reportLink.style.color = '#333';
-            reportLink.style.borderBottomColor = '#333';
-        };
-
-        reportLink.onmouseout = function () {
-            reportLink.style.color = '#999';
-            reportLink.style.borderBottomColor = '#999';
-        };
 
         const updateCursor = () => {
             const checkboxes = document.querySelectorAll('.checkbox');
             const checked = Array.from(checkboxes).some(checkbox => checkbox.checked);
             if (checked) {
                 reportLink.style.cursor = 'pointer';
-                reportLink.onclick = manualReport(  reportLocation)
+                reportLink.onclick = manualReport(reportLocation);
             } else {
                 reportLink.style.cursor = 'not-allowed';
                 reportLink.onclick = function (event) {
@@ -456,15 +447,41 @@
                 };
             }
         };
-
-        reportLocation.prepend(reportLink);
+        reportTools.appendChild(reportLink);
 
         document.addEventListener('change', updateCursor);
         updateCursor();
+
+        const selectAll = document.createElement('a');
+        selectAll.href = '#';
+
+        const selectAllText = document.createElement('span');
+        selectAllText.className = 'report-button';
+        selectAllText.textContent = 'select all';
+        selectAllText.style.fontWeight = 'normal';
+        selectAll.appendChild(selectAllText);
+
+        const updateSelectAllText = () => {
+            const checkboxes = document.querySelectorAll('.checkbox');
+            const checked = Array.from(checkboxes).some(checkbox => checkbox.checked);
+            selectAllText.textContent = checked ? 'deselect all' : 'select all';
+        }
+
+        document.addEventListener('change', updateSelectAllText);
+
+        selectAll.onclick = function (event) {
+            event.preventDefault();
+            const checkboxes = document.querySelectorAll('.checkbox');
+            const checked = Array.from(checkboxes).some(checkbox => checkbox.checked);
+            checkboxes.forEach(checkbox => checkbox.checked = !checked);
+            updateCursor();
+            updateSelectAllText();
+        }
+        reportTools.appendChild(selectAll);
     }
 
     function manualReport(reportLocation) {
-        return function(event) {
+        return function (event) {
             event.preventDefault();
 
             const reportLocationParent = reportLocation.parentNode;
@@ -836,6 +853,16 @@
                 grid-auto-columns: minmax(0, 1fr);
                 grid-auto-flow: column;
             }
+            
+            .report-button {
+                color: #999;
+            }
+            
+            .report-button:hover {
+                color: #333;
+                border-bottom-color: #333;
+            }
+                    
             
             .copyable {
                 cursor: pointer;
