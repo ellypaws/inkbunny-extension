@@ -436,15 +436,17 @@
 
         const updateCursor = () => {
             const checkboxes = document.querySelectorAll('.checkbox');
-            const checked = Array.from(checkboxes).some(checkbox => checkbox.checked);
-            if (checked) {
+            const checkedCount = Array.from(checkboxes).filter(checkbox => checkbox.checked).length;
+            if (checkedCount > 0) {
                 reportLink.style.cursor = 'pointer';
                 reportLink.onclick = manualReport(reportLocation);
+                reportText.textContent = `Report (${checkedCount})`;
             } else {
                 reportLink.style.cursor = 'not-allowed';
                 reportLink.onclick = function (event) {
                     event.preventDefault();
                 };
+                reportText.textContent = 'Report';
             }
         };
         reportTools.appendChild(reportLink);
