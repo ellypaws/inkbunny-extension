@@ -454,6 +454,7 @@
 
         const selectAll = document.createElement('a');
         selectAll.href = '#';
+        selectAll.style.marginRight = '5px';
 
         const selectAllText = document.createElement('span');
         selectAllText.className = 'report-button';
@@ -478,6 +479,22 @@
             updateSelectAllText();
         }
         reportTools.appendChild(selectAll);
+
+        const invertSelection = document.createElement('a');
+        invertSelection.href = '#';
+        const invertSelectionText = document.createElement('span');
+        invertSelectionText.className = 'report-button';
+        invertSelectionText.textContent = 'invert';
+        invertSelectionText.style.fontWeight = 'normal';
+        invertSelection.appendChild(invertSelectionText);
+        invertSelection.onclick = function (event) {
+            event.preventDefault();
+            const checkboxes = document.querySelectorAll('.checkbox');
+            checkboxes.forEach(checkbox => checkbox.checked = !checkbox.checked);
+            updateCursor();
+            updateSelectAllText();
+        }
+        reportTools.appendChild(invertSelection);
     }
 
     function manualReport(reportLocation) {
