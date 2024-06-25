@@ -470,20 +470,6 @@
                         manualReport.className = 'manual-report';
                         contentDiv.insertBefore(manualReport, contentDiv.firstChild);
 
-                        let ticketContainer = contentDiv.querySelector('.message-div.copyable');
-                        if (!ticketContainer) {
-                            ticketContainer = document.createElement('div');
-                            ticketContainer.className = 'message-div copyable';
-                            manualReport.appendChild(ticketContainer);
-                        }
-
-                        let parsedBBCodeDiv = contentDiv.querySelector('.message-div.parsed');
-                        if (!parsedBBCodeDiv) {
-                            parsedBBCodeDiv = document.createElement('div');
-                            parsedBBCodeDiv.className = 'message-div parsed';
-                            manualReport.appendChild(parsedBBCodeDiv);
-                        }
-
                         sendDataToAPI(checked, 'report_ids')
                             .then(data => {
                                 console.log('Received data:', data);
@@ -491,6 +477,20 @@
                                 const message = data?.ticket?.responses[0]?.message || 'No message found in ticket response';
 
                                 reportLocation.style.marginTop = '10px';
+
+                                let ticketContainer = contentDiv.querySelector('.message-div.copyable');
+                                if (!ticketContainer) {
+                                    ticketContainer = document.createElement('div');
+                                    ticketContainer.className = 'message-div copyable';
+                                    manualReport.appendChild(ticketContainer);
+                                }
+
+                                let parsedBBCodeDiv = contentDiv.querySelector('.message-div.parsed');
+                                if (!parsedBBCodeDiv) {
+                                    parsedBBCodeDiv = document.createElement('div');
+                                    parsedBBCodeDiv.className = 'message-div parsed';
+                                    manualReport.appendChild(parsedBBCodeDiv);
+                                }
 
                                 ticketContainer.innerHTML = message.replace(/\n/g, '<br>');
                                 parsedBBCodeDiv.innerHTML = parseBBCodeToHTML(message);
