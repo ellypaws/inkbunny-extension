@@ -487,6 +487,8 @@
 
                                 const message = data?.ticket?.responses[0]?.message || 'No message found in ticket response';
 
+                                reportLocation.style.marginTop = '10px';
+
                                 ticketContainer.innerHTML = message.replace(/\n/g, '<br>');
                                 parsedBBCodeDiv.innerHTML = parseBBCodeToHTML(message);
                                 initializeCopyFeature(ticketContainer, message);
