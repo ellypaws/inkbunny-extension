@@ -416,8 +416,6 @@
             return;
         }
 
-        const reportLocationParent = reportLocation.parentNode;
-
         console.log('Adding report button to:', reportLocation);
 
         const reportLink = document.createElement('a');
@@ -450,55 +448,7 @@
             const checked = Array.from(checkboxes).some(checkbox => checkbox.checked);
             if (checked) {
                 reportLink.style.cursor = 'pointer';
-                reportLink.onclick = function (event) {
-                    event.preventDefault();
-                    const checkboxes = document.querySelectorAll('.checkbox');
-                    const checked = Array.from(checkboxes)
-                        .filter(checkbox => checkbox.checked)
-                        .map(checkbox => checkbox.closest('a').href.match(/\/s\/(\d+)/)[1]);
-                    if (checked.length > 0) {
-                        console.log('Reporting submissions:', checked);
-
-                        const manualReport = document.createElement('div');
-                        manualReport.className = 'manual-report';
-                        reportLocationParent.insertBefore(manualReport, reportLocation);
-
-                        sendDataToAPI(checked, 'report_ids')
-                            .then(data => {
-                                console.log('Received data:', data);
-
-                                const message = data?.ticket?.responses[0]?.message || 'No message found in ticket response';
-
-                                reportLocation.style.marginTop = '10px';
-
-                                let ticketContainer = reportLocationParent.querySelector('.message-div.copyable');
-                                if (!ticketContainer) {
-                                    ticketContainer = document.createElement('div');
-                                    ticketContainer.className = 'message-div copyable';
-                                    manualReport.appendChild(ticketContainer);
-                                }
-
-                                let parsedBBCodeDiv = reportLocationParent.querySelector('.message-div.parsed');
-                                if (!parsedBBCodeDiv) {
-                                    parsedBBCodeDiv = document.createElement('div');
-                                    parsedBBCodeDiv.className = 'message-div parsed';
-                                    manualReport.appendChild(parsedBBCodeDiv);
-                                }
-
-                                ticketContainer.innerHTML = message.replace(/\n/g, '<br>');
-                                parsedBBCodeDiv.innerHTML = parseBBCodeToHTML(message);
-                                initializeCopyFeature(ticketContainer, message);
-
-                                const replacements = reportThumbnail(data);
-                                replacements.forEach(({searchValue, replaceValue}) => {
-                                    parsedBBCodeDiv.innerHTML = parsedBBCodeDiv.innerHTML.replace(searchValue, replaceValue);
-                                });
-                            })
-                            .catch(error => console.error('Error fetching data from API:', error));
-                    } else {
-                        alert('No submissions selected');
-                    }
-                };
+                reportLink.onclick = manualReport(  reportLocation)
             } else {
                 reportLink.style.cursor = 'not-allowed';
                 reportLink.onclick = function (event) {
@@ -511,6 +461,60 @@
 
         document.addEventListener('change', updateCursor);
         updateCursor();
+    }
+
+    function manualReport(reportLocation) {
+        return function(event) {
+            event.preventDefault();
+
+            const reportLocationParent = reportLocation.parentNode;
+            const checkboxes = document.querySelectorAll('.checkbox');
+            const checked = Array.from(checkboxes)
+                .filter(checkbox => checkbox.checked)
+                .map(checkbox => checkbox.closest('a').href.match(/\/s\/(\d+)/)[1]);
+            if (checked.length > 0) {
+                console.log('Reporting submissions:', checked);
+
+                const manualReport = document.createElement('div');
+                manualReport.className = 'manual-report';
+                reportLocationParent.insertBefore(manualReport, reportLocation);
+
+                sendDataToAPI(checked, 'report_ids')
+                    .then(data => {
+                        console.log('Received data:', data);
+
+                        const message = data?.ticket?.responses[0]?.message || 'No message found in ticket response';
+
+                        reportLocation.style.marginTop = '10px';
+
+                        let ticketContainer = reportLocationParent.querySelector('.message-div.copyable');
+                        if (!ticketContainer) {
+                            ticketContainer = document.createElement('div');
+                            ticketContainer.className = 'message-div copyable';
+                            manualReport.appendChild(ticketContainer);
+                        }
+
+                        let parsedBBCodeDiv = reportLocationParent.querySelector('.message-div.parsed');
+                        if (!parsedBBCodeDiv) {
+                            parsedBBCodeDiv = document.createElement('div');
+                            parsedBBCodeDiv.className = 'message-div parsed';
+                            manualReport.appendChild(parsedBBCodeDiv);
+                        }
+
+                        ticketContainer.innerHTML = message.replace(/\n/g, '<br>');
+                        parsedBBCodeDiv.innerHTML = parseBBCodeToHTML(message);
+                        initializeCopyFeature(ticketContainer, message);
+
+                        const replacements = reportThumbnail(data);
+                        replacements.forEach(({searchValue, replaceValue}) => {
+                            parsedBBCodeDiv.innerHTML = parsedBBCodeDiv.innerHTML.replace(searchValue, replaceValue);
+                        });
+                    })
+                    .catch(error => console.error('Error fetching data from API:', error));
+            } else {
+                alert('No submissions selected');
+            }
+        }
     }
 
     function blurStyle() {
