@@ -465,7 +465,7 @@
 
                         const manualReport = document.createElement('div');
                         manualReport.className = 'manual-report';
-                        contentDiv.parentNode.insertBefore(manualReport, contentDiv);
+                        contentDiv.insertBefore(manualReport, contentDiv.firstChild);
 
                         let ticketContainer = contentDiv.querySelector('.message-div.copyable');
                         if (!ticketContainer) {
@@ -831,7 +831,10 @@
             }
             
             .manual-report {
-                padding: 5px 15px;
+                display: grid;
+                gap: 10px;
+                grid-auto-columns: minmax(0, 1fr);
+                grid-auto-flow: column;
             }
             
             .copyable {
