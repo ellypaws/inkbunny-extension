@@ -45,7 +45,6 @@
     function start() {
         badgeStyle();
         loaderStyle();
-        checkboxStyle();
         addReportButton();
         addCustomStyles();
 
@@ -417,6 +416,7 @@
 
         console.log('Adding report button to:', reportLocation);
 
+        checkboxStyle();
         const reportTools = document.createElement('span');
         reportTools.style.marginRight = '25px';
         reportLocation.prepend(reportTools);
