@@ -468,6 +468,11 @@
             const checkboxes = document.querySelectorAll('.checkbox');
             const checked = Array.from(checkboxes).some(checkbox => checkbox.checked);
             selectAllText.textContent = checked ? 'deselect all' : 'select all';
+
+            const reportContainer = document.querySelector('.manual-report');
+            if (!reportContainer) return;
+            if (!checked) return;
+            manualReport(reportLocation)(new Event('click'));
         }
 
         document.addEventListener('change', updateSelectAllText);
