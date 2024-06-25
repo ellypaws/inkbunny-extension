@@ -509,9 +509,12 @@
                 .filter(checkbox => checkbox.checked)
                 .map(checkbox => checkbox.closest('a').href.match(/\/s\/(\d+)/)[1]);
             if (checked.length > 0) {
-                const manualReport = document.createElement('div');
-                manualReport.className = 'manual-report';
-                reportLocationParent.insertBefore(manualReport, reportLocation);
+                let manualReport = document.querySelector('.manual-report');
+                if (!manualReport) {
+                    manualReport = document.createElement('div');
+                    manualReport.className = 'manual-report';
+                    reportLocationParent.insertBefore(manualReport, reportLocation);
+                }
 
                 sendDataToAPI(checked, 'report_ids')
                     .then(data => {
