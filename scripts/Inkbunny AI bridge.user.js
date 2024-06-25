@@ -457,8 +457,10 @@
                     if (checked.length > 0) {
                         console.log('Reporting submissions:', checked);
 
+                        const expandedContent = document.querySelector("body > div.elephant.elephant_top.elephant_white > div.content");
+                        const collapsedContent = document.querySelector("body > div.elephant.elephant_white > div.content");
 
-                        const contentDiv = document.querySelector("body > div.elephant.elephant_top.elephant_white > div.content");
+                        const contentDiv = expandedContent || collapsedContent;
                         if (!contentDiv) {
                             console.error('Could not find div with class "content" to append message');
                             return;
