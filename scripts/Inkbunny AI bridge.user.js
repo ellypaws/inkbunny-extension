@@ -473,8 +473,6 @@
                 .filter(checkbox => checkbox.checked)
                 .map(checkbox => checkbox.closest('a').href.match(/\/s\/(\d+)/)[1]);
             if (checked.length > 0) {
-                console.log('Reporting submissions:', checked);
-
                 const manualReport = document.createElement('div');
                 manualReport.className = 'manual-report';
                 reportLocationParent.insertBefore(manualReport, reportLocation);
