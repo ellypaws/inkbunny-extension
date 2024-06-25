@@ -416,6 +416,8 @@
             return;
         }
 
+        const reportLocationParent = reportLocation.parentNode;
+
         console.log('Adding report button to:', reportLocation);
 
         const reportLink = document.createElement('a');
@@ -457,18 +459,9 @@
                     if (checked.length > 0) {
                         console.log('Reporting submissions:', checked);
 
-                        const expandedContent = document.querySelector("body > div.elephant.elephant_top.elephant_white > div.content");
-                        const collapsedContent = document.querySelector("body > div.elephant.elephant_white > div.content");
-
-                        const contentDiv = expandedContent || collapsedContent;
-                        if (!contentDiv) {
-                            console.error('Could not find div with class "content" to append message');
-                            return;
-                        }
-
                         const manualReport = document.createElement('div');
                         manualReport.className = 'manual-report';
-                        contentDiv.insertBefore(manualReport, contentDiv.firstChild);
+                        reportLocationParent.insertBefore(manualReport, reportLocation);
 
                         sendDataToAPI(checked, 'report_ids')
                             .then(data => {
@@ -478,14 +471,14 @@
 
                                 reportLocation.style.marginTop = '10px';
 
-                                let ticketContainer = contentDiv.querySelector('.message-div.copyable');
+                                let ticketContainer = reportLocationParent.querySelector('.message-div.copyable');
                                 if (!ticketContainer) {
                                     ticketContainer = document.createElement('div');
                                     ticketContainer.className = 'message-div copyable';
                                     manualReport.appendChild(ticketContainer);
                                 }
 
-                                let parsedBBCodeDiv = contentDiv.querySelector('.message-div.parsed');
+                                let parsedBBCodeDiv = reportLocationParent.querySelector('.message-div.parsed');
                                 if (!parsedBBCodeDiv) {
                                     parsedBBCodeDiv = document.createElement('div');
                                     parsedBBCodeDiv.className = 'message-div parsed';
