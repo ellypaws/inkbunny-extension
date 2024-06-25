@@ -45,6 +45,9 @@
     function start() {
         badgeStyle();
         loaderStyle();
+        checkboxStyle();
+        addReportButton();
+        addCustomStyles();
 
         if (action === "blur") {
             blurStyle();
@@ -231,7 +234,9 @@
         displaySkeletonLoaders();
         console.info('Sending data to API:', output, submissionIds);
 
-        const url = `${apiURL}/review/${submissionIds.join(',')}?parameters=true&output=${output}&stream=${output !== 'report' ? 'true' : 'false'}`;
+        const stream = output === 'full' || output === 'badges'
+
+        const url = `${apiURL}/review/${submissionIds.join(',')}?parameters=true&output=${output}&stream=${stream}`;
         return fetch(url, {
             method: 'POST',
             headers: {
@@ -251,7 +256,7 @@
             })
         })
             .then(response => {
-                if (output === 'report') {
+                if (!stream) {
                     return response.json();
                 }
 
@@ -304,7 +309,7 @@
 
         const currentPageMatch = window.location.pathname.match(/\/s\/(\d+)/);
         const currentPageSubmissionId = currentPageMatch ? currentPageMatch[1] : null;
-
+        const reportButton = !!document.querySelector('#report-button');
 
         data.forEach(item => {
             const submissionLink = document.querySelector(`a[href="/s/${item.id}"]`);
@@ -315,13 +320,17 @@
                 if (item.submission.metadata.artists_used) {
                     addArtistBadges(submissionLink, item.submission.metadata.artists_used);
                 }
+
+                applyAction(action, submissionLink, item);
+
+                if (reportButton) {
+                    addCheckboxes(submissionLink, item);
+                }
             }
 
             if (loader) {
                 loader.remove();
             }
-
-            applyAction(action, submissionLink, item);
 
             if (currentPageSubmissionId === item.id) {
                 const contentDiv = document.querySelector("body > div.elephant.elephant_bottom.elephant_white > div.content");
@@ -333,8 +342,6 @@
                     console.error('No message found in ticket response');
                     return;
                 }
-
-                addCustomStyles();
 
                 if (item.submission.metadata.ai_submission) {
                     displayMessage(contentDiv, item)
@@ -370,6 +377,142 @@
                 }
                 break;
         }
+    }
+
+    function addCheckboxes(link, item) {
+        if (!item.submission.metadata.ai_submission) {
+            return;
+        }
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'checkbox';
+        checkbox.style.margin = '5px';
+        checkbox.style.verticalAlign = 'middle';
+        checkbox.ariaLabel = 'Report this submission';
+        checkbox.dataset.on = 'To Report';
+        checkbox.dataset.off = 'Include';
+
+        checkbox.onclick = function () {
+            if (this.checked) {
+                link.classList.add('report');
+            } else {
+                link.classList.remove('report');
+            }
+        };
+        link.prepend(checkbox);
+    }
+
+    function addReportButton() {
+        const gallery = document.querySelector("body > div.elephant.elephant_top.elephant_white.elephant_expandable > div.content > div:nth-child(1)")
+        const userPage = document.querySelector("body > div:nth-child(73) > div.content > div:nth-child(2)")
+
+        const reportLocation = gallery || userPage;
+        if (!reportLocation) {
+            console.error('Could not find gallery or user page');
+            return;
+        }
+        if (document.querySelector('#report-button')) {
+            return;
+        }
+
+        console.log('Adding report button to:', reportLocation);
+
+        const reportLink = document.createElement('a');
+        reportLink.id = 'report-button';
+        reportLink.href = '#';
+        reportLink.style.borderBottom = '1px dotted #999';
+        reportLink.style.color = '#999';
+        reportLink.style.marginRight = '5px';
+        reportLink.style.textDecoration = 'none';
+        reportLink.style.display = 'inline-flex';
+        reportLink.style.alignItems = 'center';
+        reportLink.style.cursor = 'pointer';
+
+        const reportText = document.createElement('span');
+        reportText.textContent = 'Report';
+        reportLink.appendChild(reportText);
+
+        reportLink.onmouseover = function () {
+            reportLink.style.color = '#333';
+            reportLink.style.borderBottomColor = '#333';
+        };
+
+        reportLink.onmouseout = function () {
+            reportLink.style.color = '#999';
+            reportLink.style.borderBottomColor = '#999';
+        };
+
+        const updateCursor = () => {
+            const checkboxes = document.querySelectorAll('.checkbox');
+            const checked = Array.from(checkboxes).some(checkbox => checkbox.checked);
+            if (checked) {
+                reportLink.style.cursor = 'pointer';
+                reportLink.onclick = function (event) {
+                    event.preventDefault();
+                    const checkboxes = document.querySelectorAll('.checkbox');
+                    const checked = Array.from(checkboxes)
+                        .filter(checkbox => checkbox.checked)
+                        .map(checkbox => checkbox.closest('a').href.match(/\/s\/(\d+)/)[1]);
+                    if (checked.length > 0) {
+                        console.log('Reporting submissions:', checked);
+
+
+                        const contentDiv = document.querySelector("body > div.elephant.elephant_top.elephant_white > div.content");
+                        if (!contentDiv) {
+                            console.error('Could not find div with class "content" to append message');
+                            return;
+                        }
+
+                        const manualReport = document.createElement('div');
+                        manualReport.className = 'manual-report';
+                        contentDiv.parentNode.insertBefore(manualReport, contentDiv);
+
+                        let ticketContainer = contentDiv.querySelector('.message-div.copyable');
+                        if (!ticketContainer) {
+                            ticketContainer = document.createElement('div');
+                            ticketContainer.className = 'message-div copyable';
+                            manualReport.appendChild(ticketContainer);
+                        }
+
+                        let parsedBBCodeDiv = contentDiv.querySelector('.message-div.parsed');
+                        if (!parsedBBCodeDiv) {
+                            parsedBBCodeDiv = document.createElement('div');
+                            parsedBBCodeDiv.className = 'message-div parsed';
+                            manualReport.appendChild(parsedBBCodeDiv);
+                        }
+
+                        sendDataToAPI(checked, 'report_ids')
+                            .then(data => {
+                                console.log('Received data:', data);
+
+                                const message = data?.ticket?.responses[0]?.message || 'No message found in ticket response';
+
+                                ticketContainer.innerHTML = message.replace(/\n/g, '<br>');
+                                parsedBBCodeDiv.innerHTML = parseBBCodeToHTML(message);
+                                initializeCopyFeature(ticketContainer, message);
+
+                                const replacements = reportThumbnail(data);
+                                replacements.forEach(({searchValue, replaceValue}) => {
+                                    parsedBBCodeDiv.innerHTML = parsedBBCodeDiv.innerHTML.replace(searchValue, replaceValue);
+                                });
+                            })
+                            .catch(error => console.error('Error fetching data from API:', error));
+                    } else {
+                        alert('No submissions selected');
+                    }
+                };
+            } else {
+                reportLink.style.cursor = 'not-allowed';
+                reportLink.onclick = function (event) {
+                    event.preventDefault();
+                };
+            }
+        };
+
+        reportLocation.prepend(reportLink);
+
+        document.addEventListener('change', updateCursor);
+        updateCursor();
     }
 
     function blurStyle() {
@@ -684,6 +827,11 @@
                 border: 0px solid #ccc;
                 border-radius: 20px;
                 position: relative;
+                overflow-wrap: break-word;
+            }
+            
+            .manual-report {
+                padding: 5px 15px;
             }
             
             .copyable {
@@ -1069,6 +1217,45 @@
         0%, 100% { background-color: #888a85; }
         50% { background-color: #babdb6; }
     }`;
+        document.head.appendChild(styleElement);
+    }
+
+    function checkboxStyle() {
+        const styleElement = document.createElement('style');
+        styleElement.textContent = `
+        [type="checkbox"] {
+          appearance: none;
+          display: inline-flex;
+          margin: 0;
+          position: absolute;
+          bottom: 2px;
+          z-index: 1;
+        }
+        
+        [type="checkbox"]::before {
+          background-color: #e9e9e9;
+          border: 1px solid #ccc;
+          box-shadow: 0 0 0 1px rgba(255,255,255,0.5) inset;
+          border-radius: 1rem;
+          color: #666;
+          content: attr(data-off);
+          cursor: pointer;
+          filter: drop-shadow(0px 4px 3px #333);
+          font-size: 10px;
+          font-weight: 600;
+          min-width: 35px;
+          padding: .35rem;
+          text-shadow: #fff 0px 1px 1px;
+          transition: all 0.1s cubic-bezier(0.25, 0.25, 0.75, 0.75);
+        }
+        
+        [type="checkbox"]:checked::before {
+          background-color: #ffd4b1;
+          box-shadow: 0 0 0 1px rgba(255,255,255,0.5) inset, 0px 4px 4px -1px #333 inset;
+          color: #834107;
+          content: attr(data-on);
+          filter: drop-shadow(0px 0px 0px #333);
+        }`;
         document.head.appendChild(styleElement);
     }
 })();
