@@ -404,9 +404,10 @@
 
     function addReportButton() {
         const gallery = document.querySelector("body > div.elephant.elephant_top.elephant_white.elephant_expandable > div.content > div:nth-child(1)")
+        const galleryCollapsed = document.querySelector("body > div.elephant.elephant_white > div.content > div:nth-child(1)")
         const userPage = document.querySelector("body > div:nth-child(73) > div.content > div:nth-child(2)")
 
-        const reportLocation = gallery || userPage;
+        const reportLocation = gallery || galleryCollapsed || userPage;
         if (!reportLocation) {
             console.error('Could not find gallery or user page');
             return;
