@@ -407,7 +407,7 @@
 
         const reportLocation = userPage || gallery || galleryCollapsed;
         if (!reportLocation) {
-            console.error('Could not find gallery or user page');
+            console.warn('Could not find gallery or user page');
             return;
         }
         if (document.querySelector('#report-button')) {
