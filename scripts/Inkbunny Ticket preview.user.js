@@ -8,6 +8,7 @@
 // @icon         https://github.com/ellypaws/inkbunny-extension/blob/main/public/favicon.ico?raw=true
 // @grant        GM_getValue
 // @grant        GM_setValue
+// @run-at       document-start
 // ==/UserScript==
 
 "use strict";
