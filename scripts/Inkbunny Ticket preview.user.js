@@ -8,12 +8,117 @@
 // @icon         https://github.com/ellypaws/inkbunny-extension/blob/main/public/favicon.ico?raw=true
 // @grant        GM_getValue
 // @grant        GM_setValue
+// @grant        GM_registerMenuCommand
 // @run-at       document-start
 // ==/UserScript==
 
 "use strict";
 
-window.addEventListener('load', addElementsToTable);
+GM_registerMenuCommand(`Reset store`, resetStore, "r");
+
+window.addEventListener('load', start);
+
+function start() {
+    checkUnread();
+    addElementsToTable();
+}
+
+/** @typedef {object} Responded
+ * @property {number} ticket_id
+ * @property {string} support_response
+ * @property {Date} last_response_date
+ * @property {number} message_count
+ * @property {string} last_response
+ * @property {boolean} unread
+ */
+
+/**
+ * respondedStore is a dictionary of ticket_id: Responded
+ * @type {Object.<string, Responded>}
+ */
+let respondedStore = GM_getValue("responded", {});
+
+function resetStore() {
+    respondedStore = {};
+    GM_setValue("responded", respondedStore);
+    console.log("Store reset!", respondedStore);
+}
+
+/**
+ * Function to check for new unread tickets and update the respondedStore on page load.
+ * It checks each item in the table if the second td in each table row and if it has the second div containing
+ * "New unread responses"
+ */
+function checkUnread() {
+    const table = document.querySelector(
+        "body > div.elephant.elephant_bottom.elephant_white > div.content > table > tbody"
+    );
+    if (!table) {
+        console.error("Table not found!");
+        return;
+    }
+    const rows = table.querySelectorAll("tr");
+
+    // Skip the first row which is the header
+    Array.from(rows)
+        .slice(1)
+        .forEach((row) => {
+            const cells = row.querySelectorAll("td");
+            if (cells.length < 2) return;
+
+            const descriptionCell = cells[1];
+            const newUnreadDiv = descriptionCell.querySelector("div:nth-child(2)");
+
+            if (!newUnreadDiv) return;
+            if (!newUnreadDiv.textContent.includes("New unread responses")) return;
+
+            const ticketId = row
+                .querySelector("td a").href
+                ?.split("trouble_ticket_id=")[1]
+                ?.split("&")[0]
+                ?.trim();
+
+            if (!ticketId) {
+                console.error("Ticket ID not found!");
+                return;
+            }
+
+            addToRespondedStore({
+                ticket_id: Number(ticketId),
+                support_response: "",
+                last_response_date: new Date(),
+                message_count: 0,
+                last_response: "",
+                unread: true,
+            });
+        });
+
+    GM_setValue("responded", respondedStore);
+    console.log("Updated respondedStore", respondedStore);
+}
+
+/**
+ * @param {Responded} responded
+ * @returns {number} length of the respondedStore
+ */
+function addToRespondedStore(responded) {
+    if (!responded.ticket_id) {
+        console.error("Ticket ID not found!");
+        return;
+    }
+
+
+    if (respondedStore[responded.ticket_id]) {
+        console.log("Updating existing ticket", responded.ticket_id);
+    } else {
+        console.log("Adding new ticket", responded);
+    }
+
+    respondedStore[responded.ticket_id] = responded;
+
+    GM_setValue("responded", respondedStore);
+    return Object.keys(respondedStore).length;
+}
 
 // Function to create the preview row
 function addElementsToTable() {
