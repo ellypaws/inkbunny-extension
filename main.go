@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"github.com/ellypaws/inkbunny-app/cmd/api"
 	"github.com/ellypaws/inkbunny-app/cmd/db"
-	sd "github.com/ellypaws/inkbunny-sd/stable_diffusion"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	logger "github.com/labstack/gommon/log"
@@ -19,11 +18,8 @@ import (
 )
 
 var (
-	sdHost    = sd.DefaultHost   // SD_HOST
-	port      = "1323"           // PORT
-	redisHost = "localhost:6379" // REDIS_HOST
-
-	e = echo.New()
+	port = "1323" // PORT
+	e    = echo.New()
 )
 
 func main() {
@@ -127,16 +123,6 @@ var middlewares = []echo.MiddlewareFunc{
 func init() {
 	e.Logger.SetLevel(logger.DEBUG)
 	e.Logger.SetHeader(`${time_rfc3339} ${level}	${short_file}:${line}	`)
-
-	if h := os.Getenv("SD_HOST"); h != "" {
-		u, err := url.Parse(h)
-		if err != nil {
-			e.Logger.Fatal(err)
-		}
-		sdHost = (*sd.Host)(u)
-	} else {
-		e.Logger.Warn("warning: SD_HOST not set, using default localhost:7860")
-	}
 
 	if p := os.Getenv("PORT"); p != "" {
 		port = p
