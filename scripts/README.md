@@ -114,10 +114,15 @@ Todo:
 
 After installing the userscript, you need to configure it to match your server URL. If you're running the server locally, the default URL is `http://localhost:1323`.
 
-1. Open the userscript manager dashboard (Tampermonkey or Greasemonkey).
-2. Find the Inkbunny AI Bridge userscript and click on it to edit.
-3. Find the line that contains the API URL and replace it with your server URL (e.g., `http://localhost:1323`).
-4. Save the changes.
+![menu](../doc/login.png)
+
+1. Click on the Tampermonkey icon in your browser to open the menu.
+2. Find the Inkbunny AI Bridge and <kbd>Set API URL</kbd> if you're using a different server.
+3. In the same menu, you can login using the <kbd>User menu (login)</kbd> button
+4. You can choose between three different options for AI thumbnails:
+   - <kbd>Label</kbd> - This will add a label to the submission.
+   - <kbd>Blur</kbd> - This will blur the submission.
+   - <kbd>Remove</kbd> - This will remove the submission.
 
 Now, the Inkbunny AI Bridge should be ready to use.
 
