@@ -41,6 +41,9 @@ func main() {
 	e.GET("/review/:id", api.GetReviewHandler, config...)
 	e.POST("/review/:id", api.GetReviewHandler, config...)
 
+	e.GET("/report/:id/:key", api.GetReportKeyHandler, config...)
+	e.PATCH("/report", api.PatchReport, config...)
+
 	e.GET("/", redirect, api.StaticMiddleware...)
 	e.GET("/*", echo.StaticDirectoryHandler(
 		echo.MustSubFS(e.Filesystem, "public"),
