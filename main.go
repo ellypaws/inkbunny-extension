@@ -3,6 +3,7 @@ package main
 import (
 	_ "embed"
 	"encoding/json"
+	"fmt"
 	"github.com/ellypaws/inkbunny-app/cmd/api"
 	"github.com/ellypaws/inkbunny-app/cmd/db"
 	"github.com/labstack/echo/v4"
@@ -83,16 +84,16 @@ func startupMessage(e *echo.Echo) {
 		coloredText.WriteString(termenv.String(ansi.text).Foreground(termenv.RGBColor(ansi.color)).Bold().String())
 	}
 
-	e.Logger.Infof("%s %s", coloredText.String(), "https://github.com/ellypaws")
-	e.Logger.Infof("Post issues at %s", "https://github.com/ellypaws/inkbunny-app/issues")
+	fmt.Println()
+	e.Logger.Infof("%*s %s", coloredText.Len()+1, coloredText.String(), "https://github.com/ellypaws")
+	e.Logger.Infof("%14s: %s", "Post issues at", "https://github.com/ellypaws/inkbunny-app/issues")
 
-	e.Logger.Infof("     api host: %s", api.ServerHost)
-	e.Logger.Infof("      sd host: %s", api.SDHost)
+	e.Logger.Infof("%14s: %s", "api host", api.ServerHost)
 
 	if api.SDHost.Alive() {
-		e.Logger.Infof("      sd host: %s", api.SDHost)
+		e.Logger.Infof("%14s: %s", "sd host", api.SDHost)
 	} else {
-		e.Logger.Warnf("      sd host: %s (not running)", api.SDHost)
+		e.Logger.Warnf("%14s: %s (not running)", "sd host", api.SDHost)
 	}
 }
 
