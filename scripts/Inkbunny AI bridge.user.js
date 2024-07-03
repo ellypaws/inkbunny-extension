@@ -378,12 +378,15 @@
     }
 
     function addCheckboxes(link, item) {
-        if (!item.submission.metadata.ai_submission) {
-            return;
-        }
         const checkbox = document.createElement('input');
+
         checkbox.type = 'checkbox';
-        checkbox.className = 'checkbox';
+        if (!item.submission.metadata.ai_submission) {
+            console.log('Adding checkbox-hidden to:', link);
+            checkbox.className = 'checkbox hidden';
+        } else {
+            checkbox.className = 'checkbox';
+        }
         checkbox.style.margin = '5px';
         checkbox.style.verticalAlign = 'middle';
         checkbox.ariaLabel = 'Report this submission';
@@ -1310,11 +1313,20 @@
         }
         
         [type="checkbox"]:checked::before {
+          visibility: visible;
           background-color: #ffd4b1;
           box-shadow: 0 0 0 1px rgba(255,255,255,0.5) inset, 0px 4px 4px -1px #333 inset;
           color: #834107;
           content: attr(data-on);
           filter: drop-shadow(0px 0px 0px #333);
+        }
+        
+        .widget_imageFromSubmission .checkbox.hidden {
+            visibility: hidden;
+        }
+        
+        .widget_imageFromSubmission:hover .checkbox.hidden {
+            visibility: unset;
         }`;
         document.head.appendChild(styleElement);
     }
