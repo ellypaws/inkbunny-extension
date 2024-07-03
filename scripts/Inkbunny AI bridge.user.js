@@ -954,6 +954,7 @@
 
     function initializeCopyFeature(messageDiv, message) {
         if (initialized) return;
+        initialized = true;
         messageDiv.addEventListener('click', function () {
             const selectedText = window.getSelection().toString();
             const textToCopy = selectedText ? selectedText : message;
