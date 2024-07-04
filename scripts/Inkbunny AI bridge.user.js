@@ -381,7 +381,6 @@ function addCheckboxes(link, item) {
 
     checkbox.type = 'checkbox';
     if (!item.submission.metadata.ai_submission || !item.ticket.labels) {
-        console.log('Adding checkbox-hidden to:', link);
         checkbox.className = 'checkbox hidden';
     } else {
         checkbox.className = 'checkbox';
