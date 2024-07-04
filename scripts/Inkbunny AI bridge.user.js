@@ -380,7 +380,7 @@ function addCheckboxes(link, item) {
     const checkbox = document.createElement('input');
 
     checkbox.type = 'checkbox';
-    if (!item.submission.metadata.ai_submission) {
+    if (!item.submission.metadata.ai_submission || !item.ticket.labels) {
         console.log('Adding checkbox-hidden to:', link);
         checkbox.className = 'checkbox hidden';
     } else {
