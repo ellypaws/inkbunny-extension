@@ -546,7 +546,7 @@ function manualReport(reportLocation) {
 
                     ticketContainer.innerHTML = message.replace(/\n/g, '<br>');
                     parsedBBCodeDiv.innerHTML = parseBBCodeToHTML(message);
-                    initializeCopyFeature(ticketContainer, message);
+                    ticketContainer.onclick = copy(message);
 
                     const replacements = reportThumbnail(data);
                     replacements.forEach(({searchValue, replaceValue}) => {
@@ -591,7 +591,7 @@ function displayMessage(contentDiv, item) {
         .replace(/\n/g, '<br>');
 
     contentDiv.appendChild(messageDiv);
-    initializeCopyFeature(messageDiv, message)
+    messageDiv.onclick = copy(message)
 
     const parsedBBCodeDiv = document.createElement('div');
     parsedBBCodeDiv.className = 'message-div';
@@ -838,7 +838,7 @@ function displayShowAllSubmissionsButton(contentDiv, item) {
                 ticketContainer.className = 'message-div copyable';
                 ticketContainer.innerHTML = message.replace(/\n/g, '<br>');
                 contentDiv.appendChild(ticketContainer);
-                initializeCopyFeature(ticketContainer, message);
+                ticketContainer.onclick = copy(message);
 
                 const parsedBBCodeDiv = document.createElement('div');
                 parsedBBCodeDiv.className = 'message-div';
@@ -948,19 +948,15 @@ function addCustomStyles() {
     document.head.appendChild(styleElement);
 }
 
-let initialized = false;
-
-function initializeCopyFeature(messageDiv, message) {
-    if (initialized) return;
-    initialized = true;
-    messageDiv.addEventListener('click', function () {
+function copy(message) {
+    return function () {
         const selectedText = window.getSelection().toString();
         const textToCopy = selectedText ? selectedText : message;
         GM_setClipboard(textToCopy, 'text');
         if (!selectedText) {
             alert('Copied to Clipboard!');
         }
-    });
+    };
 }
 
 const bbTagReplacements = [
