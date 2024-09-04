@@ -575,7 +575,7 @@ function blurStyle() {
 }
 
 function removeSubmission(link) {
-    const parent = link.closest('.widget_thumbnailLargeCompleteFromSubmission');
+    const parent = link.closest('.widget_imageFromSubmission').parentNode.parentNode;
     if (parent) {
         parent.remove();
     }
