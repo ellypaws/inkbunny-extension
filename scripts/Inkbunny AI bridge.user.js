@@ -1239,7 +1239,6 @@ function injectSorterStyles() {
             right: 10px;
             z-index: 10000;
         }
-        
         .sorter-button {
             background-color: #4CAF50;
             border: none;
@@ -1256,7 +1255,6 @@ function injectSorterStyles() {
         .sorter-button:hover {
             background-color: #45a049;
         }
-        
         .sorted-container {
             position: absolute;
             top: 50px;
@@ -1268,6 +1266,18 @@ function injectSorterStyles() {
             max-width: 300px;
             z-index: 10000;
             margin-top: 10px;
+            padding-top: 30px;
+            position: relative;
+        }
+        .sorted-container .close-button {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: transparent;
+            border: none;
+            color: #333;
+            font-size: 18px;
+            cursor: pointer;
         }
     `;
     const styleEl = document.createElement("style");
@@ -1292,7 +1302,7 @@ function addSorterOverlay() {
     }
 
     const sorterButton = document.createElement("button");
-    sorterButton.textContent = "Sort Submissions by Author";
+    sorterButton.textContent = "Sort";
     sorterButton.className = "sorter-button";
     sorterButton.onclick = function (e) {
         e.preventDefault();
@@ -1318,12 +1328,20 @@ function sortAndSendSubmissions() {
     sortedContainer = document.createElement("div");
     sortedContainer.className = "sorted-container";
     sorterOverlay.appendChild(sortedContainer);
-
+    const closeButton = document.createElement("button");
+    closeButton.className = "close-button";
+    closeButton.textContent = "×";
+    closeButton.onclick = function (e) {
+        e.preventDefault();
+        sortedContainer.remove();
+    };
+    sortedContainer.appendChild(closeButton);
     const loader = createSkeletonLoader('large', 'sorter-response');
     sortedContainer.appendChild(loader);
 
     const responses = document.querySelectorAll('div[id^="response_"]');
     let submissions = [];
+    
     responses.forEach(response => {
         const authorElem = response.querySelector('div[style*="width: 296px"] a');
         let author = authorElem ? authorElem.textContent.trim() : "Unknown";
@@ -1332,17 +1350,13 @@ function sortAndSendSubmissions() {
         const allLinks = response.querySelectorAll('.widget_imageFromSubmission a[href*="/s/"], a[href*="inkbunny.net/s/"]');
         allLinks.forEach(link => {
             let href = link.getAttribute("href");
-
             if (href.startsWith("/")) {
                 href = "https://inkbunny.net" + href;
             }
+
             const match = href.match(/(?:\/|inkbunny\.net\/s\/)(\d+)/);
             if (match) {
-                submissions.push({
-                    id: match[1],
-                    url: href,
-                    author: author
-                });
+                submissions.push({id: match[1], url: href, author: author});
             }
         });
     });
@@ -1355,7 +1369,6 @@ function sortAndSendSubmissions() {
 
     const filtered = submissions.filter(sub => sub.author !== "Inkbunny Support Team");
     const sortedText = filtered.map(sub => sub.url).join("\n");
-
     const user = GM_getValue('user');
     const sid = user && user.sid ? user.sid : "sid";
     const payload = {
@@ -1389,9 +1402,8 @@ function sortAndSendSubmissions() {
             console.error("Error sending sorted submissions:", error);
             alert("Error sending sorted submissions.");
         }).finally(() => {
-            loader.remove();
-        }
-    );
+        loader.remove();
+    });
 }
 
 function loaderStyle() {
