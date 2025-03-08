@@ -18,6 +18,8 @@ github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkp
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/ellypaws/inkbunny-app v0.0.0-20250308034400-7a8a8941f261 h1:6i60Bh0SnGL2bTrJofxvRQO4RaabHjSf+FeZlV/wgX4=
 github.com/ellypaws/inkbunny-app v0.0.0-20250308034400-7a8a8941f261/go.mod h1:OSNIfuPpBnf0l0Ojz+3V/VYn2V+7eJzt8smk7cFLqsc=
+github.com/ellypaws/inkbunny-app v0.0.0-20250308043423-a4fe78e5a9a7 h1:MCrOEqY3IygjoAp6iV5mZUPfdzcTIsKsw1h/v35j7ko=
+github.com/ellypaws/inkbunny-app v0.0.0-20250308043423-a4fe78e5a9a7/go.mod h1:a0Vq6ZE6Y51ziybDRWZAiW4KWKuxjJdD5lt52d1OTpI=
 github.com/ellypaws/inkbunny-sd v0.0.0-20250307145449-b2576215e847 h1:mj6Mo6UBNWMFn99C9IUphn2XGylEDFYo8WR9rsdB4pg=
 github.com/ellypaws/inkbunny-sd v0.0.0-20250307145449-b2576215e847/go.mod h1:/xGPok375N+72GQgsRuLYxR2H2I3FRgbLpE6VW85RDw=
 github.com/ellypaws/inkbunny/api v0.0.0-20240521065300-7d34160ddf2d h1:1eRXJqqF855AFSy7Sp998ChN1xMea4VD8ugc7LuoesU=
