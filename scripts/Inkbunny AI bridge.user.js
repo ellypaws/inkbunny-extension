@@ -1373,8 +1373,6 @@ function sortAndSendSubmissions() {
     })
         .then(response => response.json())
         .then(data => {
-            loader.remove();
-
             let formattedMessage = '';
             for (const [username, links] of Object.entries(data)) {
                 if (username === 'ticket') continue;
@@ -1388,10 +1386,12 @@ function sortAndSendSubmissions() {
             sortedContainer.appendChild(responseDiv);
         })
         .catch(error => {
-            loader.remove();
             console.error("Error sending sorted submissions:", error);
             alert("Error sending sorted submissions.");
-        });
+        }).finally(() => {
+            loader.remove();
+        }
+    );
 }
 
 function loaderStyle() {
