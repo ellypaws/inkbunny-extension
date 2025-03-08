@@ -46,6 +46,10 @@ function start() {
     loaderStyle();
     addReportButton();
     addCustomStyles();
+    if (window.location.pathname.indexOf("ticketview.php") !== -1) {
+        injectSorterStyles();
+        addSorterOverlay();
+    }
 
     if (action === "blur") {
         blurStyle();
@@ -1225,6 +1229,169 @@ function createSkeletonLoader(type = 'default', identifier = '') {
 function removeSkeletonLoaders() {
     const loaders = document.querySelectorAll('.loader');
     loaders.forEach(loader => loader.remove());
+}
+
+function injectSorterStyles() {
+    const css = `
+        .sorter-overlay {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10000;
+        }
+        
+        .sorter-button {
+            background-color: #4CAF50;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            padding: 8px 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            display: block;
+        }
+        .sorter-button:hover {
+            background-color: #45a049;
+        }
+        
+        .sorted-container {
+            position: absolute;
+            top: 50px;
+            right: 0;
+            background-color: #d3d7cf;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            max-width: 300px;
+            z-index: 10000;
+            margin-top: 10px;
+        }
+    `;
+    const styleEl = document.createElement("style");
+    styleEl.type = "text/css";
+    styleEl.textContent = css;
+    document.head.appendChild(styleEl);
+}
+
+function addSorterOverlay() {
+    const contentContainer = document.querySelector("body > div.elephant.elephant_white > div.content");
+    if (!contentContainer) {
+        console.error("Ticket content container not found.");
+        return;
+    }
+    
+    let sorterOverlay = document.getElementById("sorter-overlay");
+    if (!sorterOverlay) {
+        sorterOverlay = document.createElement("div");
+        sorterOverlay.id = "sorter-overlay";
+        sorterOverlay.className = "sorter-overlay";
+        contentContainer.appendChild(sorterOverlay);
+    }
+    
+    const sorterButton = document.createElement("button");
+    sorterButton.textContent = "Sort Submissions by Author";
+    sorterButton.className = "sorter-button";
+    sorterButton.onclick = function(e) {
+        e.preventDefault();
+        sortAndSendSubmissions();
+    };
+    
+    sorterOverlay.innerHTML = "";
+    sorterOverlay.appendChild(sorterButton);
+}
+
+function sortAndSendSubmissions() {
+    const sorterOverlay = document.getElementById("sorter-overlay");
+    if (!sorterOverlay) {
+        console.error("Sorter overlay not found.");
+        return;
+    }
+    
+    let sortedContainer = sorterOverlay.querySelector(".sorted-container");
+    if (sortedContainer) {
+        sortedContainer.remove();
+    }
+    
+    sortedContainer = document.createElement("div");
+    sortedContainer.className = "sorted-container";
+    sorterOverlay.appendChild(sortedContainer);
+    
+    const loader = createSkeletonLoader('large', 'sorter-response');
+    sortedContainer.appendChild(loader);
+    
+    const responses = document.querySelectorAll('div[id^="response_"]');
+    let submissions = [];
+    responses.forEach(response => {
+        
+        const authorElem = response.querySelector('div[style*="width: 296px"] a');
+        let author = authorElem ? authorElem.textContent.trim() : "Unknown";
+        
+        const submissionLinks = response.querySelectorAll('.widget_imageFromSubmission a[href*="/s/"]');
+        submissionLinks.forEach(link => {
+            let href = link.getAttribute("href");
+            
+            if (href.startsWith("/")) {
+                href = "https://inkbunny.net" + href;
+            }
+            const match = href.match(/\/s\/(\d+)/);
+            if (match) {
+                submissions.push({
+                    id: match[1],
+                    url: href,
+                    author: author
+                });
+            }
+        });
+    });
+
+    if (submissions.length === 0) {
+        alert("No submissions found to sort.");
+        loader.remove();
+        return;
+    }
+
+    const filtered = submissions.filter(sub => sub.author !== "Inkbunny Support Team");
+    const sortedText = filtered.map(sub => sub.url).join("\n");
+
+    const user = GM_getValue('user');
+    const sid = user && user.sid ? user.sid : "sid";
+    const payload = {
+        sid: sid,
+        text: sortedText
+    };
+
+    fetch(`${apiURL}/inkbunny/sorter`, {
+        method: "POST",
+        headers: {
+            'Content-Type': 'application/json',
+            'x-sid': sid
+        },
+        body: JSON.stringify(payload)
+    })
+        .then(response => response.json())
+        .then(data => {
+            loader.remove();
+
+            let formattedMessage = '';
+            for (const [username, links] of Object.entries(data)) {
+                if (username === 'ticket') continue;
+                formattedMessage += `[b]${username}[/b]\n${links.join('\n')}\n\n`;
+            }
+            const responseMessage = formattedMessage || "No submissions found.";
+            const responseDiv = document.createElement("div");
+            responseDiv.className = "message-div copyable sorter-response";
+            responseDiv.innerHTML = parseBBCodeToHTML(responseMessage);
+            responseDiv.onclick = copy(responseMessage);
+            sortedContainer.appendChild(responseDiv);
+        })
+        .catch(error => {
+            loader.remove();
+            console.error("Error sending sorted submissions:", error);
+            alert("Error sending sorted submissions.");
+        });
 }
 
 function loaderStyle() {

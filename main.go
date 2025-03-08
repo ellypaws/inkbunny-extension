@@ -47,6 +47,9 @@ func main() {
 	e.GET("/report/:id/:key", api.GetReportKeyHandler, api.StaticMiddleware...)
 	e.PATCH("/report", api.PatchReport, reducedMiddleware...)
 
+	e.GET("/inkbunny/sorter", api.GetSorterHandler, reducedMiddleware...)
+	e.POST("/inkbunny/sorter", api.GetSorterHandler, reducedMiddleware...)
+
 	e.GET("/", redirect, api.StaticMiddleware...)
 	e.GET("/*", echo.StaticDirectoryHandler(
 		echo.MustSubFS(e.Filesystem, "public"),
