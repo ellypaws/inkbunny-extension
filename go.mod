@@ -3,7 +3,9 @@ module github.com/ellypaws/inkbunny-extension
 go 1.23.0
 
 require (
-	github.com/ellypaws/inkbunny-app v0.0.0-20250307162652-bd25669a153c
+	github.com/ellypaws/inkbunny-app v0.0.0-20250308034400-7a8a8941f261
+	github.com/ellypaws/inkbunny-sd v0.0.0-20250307145449-b2576215e847
+	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v4 v4.13.3
 	github.com/labstack/gommon v0.4.2
 	github.com/muesli/termenv v0.16.0
@@ -16,7 +18,6 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/ellypaws/inkbunny-sd v0.0.0-20250307145449-b2576215e847 // indirect
 	github.com/ellypaws/inkbunny/api v0.0.0-20240521065300-7d34160ddf2d // indirect
 	github.com/go-errors/errors v1.5.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
