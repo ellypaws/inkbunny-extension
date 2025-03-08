@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Inkbunny AI bridge
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      1.2
 // @description  Calls the auditing API to label AI generated submissions
 // @author       https://github.com/ellypaws
 // @match        *://inkbunny.net/*
