@@ -1281,7 +1281,7 @@ function loaderStyle() {
 function checkboxStyle() {
     const styleElement = document.createElement('style');
     styleElement.textContent = `
-    [type="checkbox"] {
+    .widget_imageFromSubmission input[type="checkbox"] {
       appearance: none;
       display: inline-flex;
       margin: 0;
@@ -1290,7 +1290,7 @@ function checkboxStyle() {
       z-index: 1;
     }
     
-    [type="checkbox"]::before {
+    .widget_imageFromSubmission input[type="checkbox"]::before {
       background-color: #e9e9e9;
       border: 1px solid #ccc;
       box-shadow: 0 0 0 1px rgba(255,255,255,0.5) inset;
@@ -1307,7 +1307,7 @@ function checkboxStyle() {
       transition: all 0.1s cubic-bezier(0.25, 0.25, 0.75, 0.75);
     }
     
-    [type="checkbox"]:checked::before {
+    .widget_imageFromSubmission input[type="checkbox"]:checked::before {
       visibility: visible;
       background-color: #ffd4b1;
       box-shadow: 0 0 0 1px rgba(255,255,255,0.5) inset, 0px 4px 4px -1px #333 inset;
