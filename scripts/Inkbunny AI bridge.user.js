@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Inkbunny AI bridge
 // @namespace    http://tampermonkey.net/
-// @version      1.2
+// @version      1.3
 // @description  Calls the auditing API to label AI generated submissions
 // @author       https://github.com/ellypaws
 // @match        *://inkbunny.net/*
@@ -1282,7 +1282,7 @@ function addSorterOverlay() {
         console.error("Ticket content container not found.");
         return;
     }
-    
+
     let sorterOverlay = document.getElementById("sorter-overlay");
     if (!sorterOverlay) {
         sorterOverlay = document.createElement("div");
@@ -1290,15 +1290,15 @@ function addSorterOverlay() {
         sorterOverlay.className = "sorter-overlay";
         contentContainer.appendChild(sorterOverlay);
     }
-    
+
     const sorterButton = document.createElement("button");
     sorterButton.textContent = "Sort Submissions by Author";
     sorterButton.className = "sorter-button";
-    sorterButton.onclick = function(e) {
+    sorterButton.onclick = function (e) {
         e.preventDefault();
         sortAndSendSubmissions();
     };
-    
+
     sorterOverlay.innerHTML = "";
     sorterOverlay.appendChild(sorterButton);
 }
@@ -1309,34 +1309,34 @@ function sortAndSendSubmissions() {
         console.error("Sorter overlay not found.");
         return;
     }
-    
+
     let sortedContainer = sorterOverlay.querySelector(".sorted-container");
     if (sortedContainer) {
         sortedContainer.remove();
     }
-    
+
     sortedContainer = document.createElement("div");
     sortedContainer.className = "sorted-container";
     sorterOverlay.appendChild(sortedContainer);
-    
+
     const loader = createSkeletonLoader('large', 'sorter-response');
     sortedContainer.appendChild(loader);
-    
+
     const responses = document.querySelectorAll('div[id^="response_"]');
     let submissions = [];
     responses.forEach(response => {
-        
         const authorElem = response.querySelector('div[style*="width: 296px"] a');
         let author = authorElem ? authorElem.textContent.trim() : "Unknown";
-        
-        const submissionLinks = response.querySelectorAll('.widget_imageFromSubmission a[href*="/s/"]');
-        submissionLinks.forEach(link => {
+
+        // Select both thumbnail links and direct text links
+        const allLinks = response.querySelectorAll('.widget_imageFromSubmission a[href*="/s/"], a[href*="inkbunny.net/s/"]');
+        allLinks.forEach(link => {
             let href = link.getAttribute("href");
-            
+
             if (href.startsWith("/")) {
                 href = "https://inkbunny.net" + href;
             }
-            const match = href.match(/\/s\/(\d+)/);
+            const match = href.match(/(?:\/|inkbunny\.net\/s\/)(\d+)/);
             if (match) {
                 submissions.push({
                     id: match[1],
