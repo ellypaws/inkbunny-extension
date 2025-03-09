@@ -16,10 +16,10 @@ github.com/disintegration/imaging v1.6.2 h1:w1LecBlG2Lnp8B3jk5zSuNqd7b4DXhcjwek1
 github.com/disintegration/imaging v1.6.2/go.mod h1:44/5580QXChDfwIclfc/PCwrr44amcmDAg8hxG0Ewe4=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
-github.com/ellypaws/inkbunny-app v0.0.0-20250309103408-64ef78c78337 h1:X7Fwe2ReSdpM49ZPqhxpC+HcKXWQjKSolVe8cMnp8o8=
-github.com/ellypaws/inkbunny-app v0.0.0-20250309103408-64ef78c78337/go.mod h1:II+kmXk73KGsQztqhoVe2GdDF2JHWbouCEgiS1STZak=
-github.com/ellypaws/inkbunny-sd v0.0.0-20250309101321-ede72b919187 h1:KvwbRPKafMoirBM3JAaV9GR745K3o0LrF6bPmNHvT8A=
-github.com/ellypaws/inkbunny-sd v0.0.0-20250309101321-ede72b919187/go.mod h1:/xGPok375N+72GQgsRuLYxR2H2I3FRgbLpE6VW85RDw=
+github.com/ellypaws/inkbunny-app v0.0.0-20250309111427-9cbed8323824 h1:uc9GAML2N0+2RbpHRN80Oiy1QohbQp5xugPn++qsVqA=
+github.com/ellypaws/inkbunny-app v0.0.0-20250309111427-9cbed8323824/go.mod h1:Ygn+LnIp41H+pgoiP2LUUffAdLXdGsNKE+0rZguCxYU=
+github.com/ellypaws/inkbunny-sd v0.0.0-20250309111131-552b31483290 h1:9BreeUr3E9x57udo2JPjDZnzjiI3TW8fC39+np58kic=
+github.com/ellypaws/inkbunny-sd v0.0.0-20250309111131-552b31483290/go.mod h1:/xGPok375N+72GQgsRuLYxR2H2I3FRgbLpE6VW85RDw=
 github.com/ellypaws/inkbunny/api v0.0.0-20240521065300-7d34160ddf2d h1:1eRXJqqF855AFSy7Sp998ChN1xMea4VD8ugc7LuoesU=
 github.com/ellypaws/inkbunny/api v0.0.0-20240521065300-7d34160ddf2d/go.mod h1:wdWqyRSEoSVdu5FnUGv44PvqdLfKQfgaXvDQpZFJs3A=
 github.com/gabriel-vasile/mimetype v1.4.0/go.mod h1:fA8fi6KUiG7MgQQ+mEWotXoEOvmxRtOJlERCzSmRvr8=
