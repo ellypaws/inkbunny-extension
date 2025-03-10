@@ -17,8 +17,11 @@
 
 let apiURL = GM_getValue("apiURL", "http://localhost:1323"); // Change this to your API URL or use the menu
 
+const assistedFlags = GM_getValue('assistedFlags', true);
+const action = GM_getValue("action", "blur");
+
 GM_registerMenuCommand("User menu (login)", promptLogin, "u");
-GM_registerMenuCommand("Set API URL", () => {
+GM_registerMenuCommand(`Set API URL (${apiURL})`, () => {
     const newURL = prompt("Enter the URL of the API server", apiURL);
     if (newURL) {
         apiURL = newURL;
@@ -26,11 +29,19 @@ GM_registerMenuCommand("Set API URL", () => {
         document.location.reload();
     }
 }, "s");
-GM_registerMenuCommand("Log out", logout, "o");
-GM_registerMenuCommand("Blur Images", setAction("blur"), "b");
-GM_registerMenuCommand("Label as AI", setAction("label"), "l");
-GM_registerMenuCommand("Remove Entries", setAction("remove"), "r");
-GM_registerMenuCommand("Toggle assisted flags", toggleAssistedFlags, "t");
+if (GM_getValue('user')) {
+    GM_registerMenuCommand("Log out", logout, "o");
+}
+
+function isAction(a) {
+    return action === a ? "✔️ " : "";
+}
+
+GM_registerMenuCommand(`${isAction("blur") }Blur Images`, setAction("blur"), "b");
+GM_registerMenuCommand(`${isAction("label") }Label as AI`, setAction("label"), "l");
+GM_registerMenuCommand(`${isAction("remove")}Remove Entries`, setAction("remove"), "r");
+
+GM_registerMenuCommand(`${assistedFlags ? "Disable" : "Enable"} assisted flags`, toggleAssistedFlags, "t");
 
 window.addEventListener("load", start);
 
@@ -82,8 +93,6 @@ function setAction(action) {
         window.location.reload();
     }
 }
-
-const action = GM_getValue("action", "blur");
 
 function promptLogin() {
     const formOverlay = document.createElement('div');
@@ -1106,12 +1115,8 @@ function addArtistBadges(link, artists) {
     });
 }
 
-let assistedFlags = GM_getValue('assistedFlags', true);
-
 function toggleAssistedFlags() {
-    assistedFlags = !assistedFlags;
-    GM_setValue('assistedFlags', assistedFlags);
-    window.alert(`Thumbnail flags on AI Assisted images are now ${assistedFlags ? 'enabled' : 'disabled'}.`);
+    GM_setValue('assistedFlags', !assistedFlags);
     window.location.reload();
 }
 
