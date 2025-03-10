@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Inkbunny AI bridge
 // @namespace    http://tampermonkey.net/
-// @version      1.3
+// @version      1.3.1
 // @description  Calls the auditing API to label AI generated submissions
 // @author       https://github.com/ellypaws
 // @match        *://inkbunny.net/*
@@ -772,6 +772,12 @@ function reportThumbnail(data) {
     })
 }
 
+/**
+ * @param {HTMLElement} contentDiv
+ * @param {Item} item
+ * @description Displays a message when the submission is not detected as AI generated
+ * @returns {void}
+ */
 function displayOverrideButton(contentDiv, item) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message-div';
@@ -795,6 +801,12 @@ function displayOverrideButton(contentDiv, item) {
     contentDiv.appendChild(messageDiv);
 }
 
+/**
+ * @param {HTMLElement} contentDiv
+ * @param {Item} item
+ * @description Displays a button to show all submissions by the user
+ * @returns {void}
+ */
 function displayShowAllSubmissionsButton(contentDiv, item) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'full-report-div message-div';
@@ -865,7 +877,9 @@ function displayShowAllSubmissionsButton(contentDiv, item) {
     contentDiv.appendChild(messageDiv);
 }
 
-
+/**
+ * @description Adds custom styles to the page
+ */
 function addCustomStyles() {
     const styleElement = document.createElement('style');
     styleElement.textContent = `
@@ -952,12 +966,18 @@ function addCustomStyles() {
     document.head.appendChild(styleElement);
 }
 
-function copy(message) {
+/**
+ * @description Returns a copy function that copies the provided message to the clipboard
+ * @param {string} message - The message to copy
+ * @param {boolean} notify - Whether to show a notification after copying
+ * @returns {function} - The copy function
+ */
+function copy(message, notify=true) {
     return function () {
         const selectedText = window.getSelection().toString();
         const textToCopy = selectedText ? selectedText : message;
         GM_setClipboard(textToCopy, 'text');
-        if (!selectedText) {
+        if (!selectedText && notify) {
             alert('Copied to Clipboard!');
         }
     };
@@ -1029,6 +1049,13 @@ const bbTagReplacements = [
     },
 ];
 
+/**
+ * @description Parses BBCode to HTML
+ * @param {string} bbcode - The BBCode string to parse
+ * @returns {string} - The parsed HTML string
+ * @example
+ * parseBBCodeToHTML('[b]Bold Text[/b]')
+ */
 function parseBBCodeToHTML(bbcode) {
     const urlRegex = /(?<!\[url=)(https?:\/\/\S+)/g;
     bbcode = bbcode.replace(urlRegex, '[url=$1]$1[/url]');
@@ -1256,9 +1283,6 @@ function injectSorterStyles() {
             background-color: #45a049;
         }
         .sorted-container {
-            position: absolute;
-            top: 50px;
-            right: 0;
             background-color: #d3d7cf;
             padding: 10px;
             border-radius: 4px;
@@ -1266,18 +1290,22 @@ function injectSorterStyles() {
             max-width: 300px;
             z-index: 10000;
             margin-top: 10px;
-            padding-top: 30px;
-            position: relative;
         }
-        .sorted-container .close-button {
-            position: absolute;
-            top: 5px;
-            right: 5px;
+        .sorted-header {
+            display: flex;
+            justify-content: flex-end;
+            gap: 5px;
+        }
+        .sorted-header .close-button,
+        .sorted-header .copy-button {
             background: transparent;
             border: none;
             color: #333;
             font-size: 18px;
             cursor: pointer;
+        }
+        .sorter-response {
+            margin-top: 0px;
         }
     `;
     const styleEl = document.createElement("style");
@@ -1328,25 +1356,37 @@ function sortAndSendSubmissions() {
     sortedContainer = document.createElement("div");
     sortedContainer.className = "sorted-container";
     sorterOverlay.appendChild(sortedContainer);
+    
+    const header = document.createElement("div");
+    header.className = "sorted-header";
+    sortedContainer.appendChild(header);
+
+    const copyButton = document.createElement("button");
+    copyButton.className = "copy-button";
+    copyButton.textContent = "📋";
+    header.appendChild(copyButton);
+
     const closeButton = document.createElement("button");
     closeButton.className = "close-button";
-    closeButton.textContent = "×";
+    closeButton.textContent = "✖";
+    header.appendChild(closeButton);
+
     closeButton.onclick = function (e) {
         e.preventDefault();
         sortedContainer.remove();
     };
-    sortedContainer.appendChild(closeButton);
+
     const loader = createSkeletonLoader('large', 'sorter-response');
     sortedContainer.appendChild(loader);
 
     const responses = document.querySelectorAll('div[id^="response_"]');
     let submissions = [];
-    
+
     responses.forEach(response => {
         const authorElem = response.querySelector('div[style*="width: 296px"] a');
         let author = authorElem ? authorElem.textContent.trim() : "Unknown";
 
-        // Select both thumbnail links and direct text links
+        // Select both thumbnail links and direct text links.
         const allLinks = response.querySelectorAll('.widget_imageFromSubmission a[href*="/s/"], a[href*="inkbunny.net/s/"]');
         allLinks.forEach(link => {
             let href = link.getAttribute("href");
@@ -1393,17 +1433,26 @@ function sortAndSendSubmissions() {
             }
             const responseMessage = formattedMessage || "No submissions found.";
             const responseDiv = document.createElement("div");
-            responseDiv.className = "message-div copyable sorter-response";
+            responseDiv.className = "message-div sorter-response";
             responseDiv.innerHTML = parseBBCodeToHTML(responseMessage);
-            responseDiv.onclick = copy(responseMessage);
             sortedContainer.appendChild(responseDiv);
+
+            copyButton.onclick = function (e) {
+                e.preventDefault();
+                copy(responseMessage, false)();
+                copyButton.textContent = "✔️";
+                setTimeout(() => {
+                    copyButton.textContent = "📋";
+                }, 1000);
+            };
         })
         .catch(error => {
             console.error("Error sending sorted submissions:", error);
             alert("Error sending sorted submissions.");
-        }).finally(() => {
-        loader.remove();
-    });
+        })
+        .finally(() => {
+            loader.remove();
+        });
 }
 
 function loaderStyle() {
