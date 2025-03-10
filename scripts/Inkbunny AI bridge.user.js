@@ -21,14 +21,7 @@ const assistedFlags = GM_getValue('assistedFlags', true);
 const action = GM_getValue("action", "blur");
 
 GM_registerMenuCommand("User menu (login)", promptLogin, "u");
-GM_registerMenuCommand(`Set API URL (${apiURL})`, () => {
-    const newURL = prompt("Enter the URL of the API server", apiURL);
-    if (newURL) {
-        apiURL = newURL;
-        GM_setValue("apiURL", apiURL);
-        document.location.reload();
-    }
-}, "s");
+GM_registerMenuCommand(`Set API URL (${apiURL})`, promptApiURL, "s");
 if (GM_getValue('user')) {
     GM_registerMenuCommand("Log out", logout, "o");
 }
@@ -37,8 +30,8 @@ function isAction(a) {
     return action === a ? "✔️ " : "";
 }
 
-GM_registerMenuCommand(`${isAction("blur") }Blur Images`, setAction("blur"), "b");
-GM_registerMenuCommand(`${isAction("label") }Label as AI`, setAction("label"), "l");
+GM_registerMenuCommand(`${isAction("blur")}Blur Images`, setAction("blur"), "b");
+GM_registerMenuCommand(`${isAction("label")}Label as AI`, setAction("label"), "l");
 GM_registerMenuCommand(`${isAction("remove")}Remove Entries`, setAction("remove"), "r");
 
 GM_registerMenuCommand(`${assistedFlags ? "Disable" : "Enable"} assisted flags`, toggleAssistedFlags, "t");
@@ -142,6 +135,15 @@ function promptLogin() {
         loginButton.textContent = "Logging in...";
         loginUser(username, password);
     };
+}
+
+function promptApiURL() {
+    const newURL = prompt("Enter the URL of the API server", apiURL);
+    if (newURL) {
+        apiURL = newURL;
+        GM_setValue("apiURL", apiURL);
+        document.location.reload();
+    }
 }
 
 function logout() {
