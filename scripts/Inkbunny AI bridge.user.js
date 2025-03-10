@@ -27,9 +27,10 @@ GM_registerMenuCommand("Set API URL", () => {
     }
 }, "s");
 GM_registerMenuCommand("Log out", logout, "o");
-GM_registerMenuCommand("Blur Images", () => setAction("blur"), "b");
-GM_registerMenuCommand("Label as AI", () => setAction("label"), "l");
-GM_registerMenuCommand("Remove Entries", () => setAction("remove"), "r");
+GM_registerMenuCommand("Blur Images", setAction("blur"), "b");
+GM_registerMenuCommand("Label as AI", setAction("label"), "l");
+GM_registerMenuCommand("Remove Entries", setAction("remove"), "r");
+GM_registerMenuCommand("Toggle assisted flags", toggleAssistedFlags, "t");
 
 window.addEventListener("load", start);
 
@@ -76,8 +77,10 @@ function start() {
 }
 
 function setAction(action) {
-    GM_setValue("action", action);
-    window.location.reload();
+    return function () {
+        GM_setValue("action", action);
+        window.location.reload();
+    }
 }
 
 const action = GM_getValue("action", "blur");
@@ -972,7 +975,7 @@ function addCustomStyles() {
  * @param {boolean} notify - Whether to show a notification after copying
  * @returns {function} - The copy function
  */
-function copy(message, notify=true) {
+function copy(message, notify = true) {
     return function () {
         const selectedText = window.getSelection().toString();
         const textToCopy = selectedText ? selectedText : message;
@@ -1103,6 +1106,20 @@ function addArtistBadges(link, artists) {
     });
 }
 
+let assistedFlags = GM_getValue('assistedFlags', true);
+
+function toggleAssistedFlags() {
+    assistedFlags = !assistedFlags;
+    GM_setValue('assistedFlags', assistedFlags);
+    window.alert(`Thumbnail flags on AI Assisted images are now ${assistedFlags ? 'enabled' : 'disabled'}.`);
+    window.location.reload();
+}
+
+/**
+ * @description Applies labels and badges to the submission link
+ * @param {HTMLElement} link - The submission link element
+ * @param {Item} item - The item data
+ */
 function applyLabelsAndBadges(link, item) {
     if (item.submission.metadata.ai_submission) {
         if (item.submission.metadata.generated) {
@@ -1112,6 +1129,9 @@ function applyLabelsAndBadges(link, item) {
             }
         } else if (item.submission.metadata.assisted) {
             addLabel(link, 'Assisted*');
+            if (item.ticket?.labels && assistedFlags) {
+                addBadges(link, item.ticket.labels);
+            }
         }
     }
 }
@@ -1356,7 +1376,7 @@ function sortAndSendSubmissions() {
     sortedContainer = document.createElement("div");
     sortedContainer.className = "sorted-container";
     sorterOverlay.appendChild(sortedContainer);
-    
+
     const header = document.createElement("div");
     header.className = "sorted-header";
     sortedContainer.appendChild(header);
