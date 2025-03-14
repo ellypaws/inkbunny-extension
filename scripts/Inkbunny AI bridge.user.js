@@ -19,6 +19,7 @@ let apiURL = GM_getValue("apiURL", "http://localhost:1323"); // Change this to y
 
 const assistedFlags = GM_getValue('assistedFlags', true);
 const action = GM_getValue("action", "blur");
+const hidePartialFlags = GM_getValue("hidePartialFlags", false);
 
 GM_registerMenuCommand("User menu (login)", promptLogin, "u");
 GM_registerMenuCommand(`Set API URL (${apiURL})`, promptApiURL, "s");
@@ -35,6 +36,7 @@ GM_registerMenuCommand(`${isAction("label")}Label as AI`, setAction("label"), "l
 GM_registerMenuCommand(`${isAction("remove")}Remove Entries`, setAction("remove"), "r");
 
 GM_registerMenuCommand(`${assistedFlags ? "Disable" : "Enable"} assisted flags`, toggleAssistedFlags, "t");
+GM_registerMenuCommand(`${hidePartialFlags ? "Show" : "Hide"} partial flags`, toggleHidePartialFlags, "p");
 
 window.addEventListener("load", start);
 
@@ -86,6 +88,13 @@ function setAction(action) {
         window.location.reload();
     }
 }
+
+
+function toggleHidePartialFlags() {
+    GM_setValue("hidePartialFlags", !hidePartialFlags);
+    window.location.reload();
+}
+
 
 function promptLogin() {
     const formOverlay = document.createElement('div');
@@ -1159,6 +1168,11 @@ function addBadges(link, labels) {
     }
 
     labels.forEach((label) => {
+        if (hidePartialFlags) {
+            if (label.startsWith('partial')) {
+                return;
+            }
+        }
         const badgeText = label.replace(/_/g, ' ');
         const badge = document.createElement('span');
         badge.textContent = badgeText;
