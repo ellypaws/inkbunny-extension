@@ -4,13 +4,16 @@
 // @version      1.3.1
 // @description  Calls the auditing API to label AI generated submissions
 // @author       https://github.com/ellypaws
+// @homepage     https://github.com/ellypaws/inkbunny-extension/tree/main/scripts
+// @homepage     https://inkbunny.net/Elly
 // @match        *://inkbunny.net/*
 // @icon         https://github.com/ellypaws/inkbunny-extension/blob/main/public/favicon.ico?raw=true
+// @updateURL    https://github.com/ellypaws/inkbunny-extension/blob/main/scripts/Inkbunny%20AI%20bridge.user.js?raw=true
 // @grant        GM_registerMenuCommand
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_setClipboard
-// @run-at       document-start
+// @run-at       document-end
 // ==/UserScript==
 
 "use strict";
