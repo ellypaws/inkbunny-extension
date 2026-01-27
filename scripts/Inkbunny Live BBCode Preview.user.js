@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Inkbunny Live BBCode Preview
 // @namespace    http://tampermonkey.net/
-// @version      2.2
+// @version      2.4
 // @description  Adds a live BBCode preview for the message and comment textareas on Inkbunny, including submission thumbnails and various BBCode tags
 // @author       https://github.com/ellypaws
 // @match        *://inkbunny.net/*
@@ -14,28 +14,63 @@
 
 'use strict';
 
-(function main() {
-    if (tryArea('#message')) return;
-    if (tryArea('#desc')) return;
-    if (tryArea('#profile')) return;
-    if (tryArea('#content')) return;
 
-    const commentTextarea = document.querySelector('#comment');
-    if (commentTextarea) {
-        // get the previous sibling of #replybutton parent
-        const commentReferenceNode = document.querySelector('#replybutton').parentNode.nextSibling;
-        createCommentPreview(commentTextarea, commentReferenceNode);
-    }
+(function main() {
+    // Hook into the textarea value setter to catch programmatic changes
+    const originalValueDescriptor = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
+    Object.defineProperty(HTMLTextAreaElement.prototype, 'value', {
+        get() {
+            return originalValueDescriptor.get.call(this);
+        },
+        set(value) {
+            originalValueDescriptor.set.call(this, value);
+            this.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    });
+
+    const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+            // Check for new nodes
+            for (const node of mutation.addedNodes) {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    checkAndInitialize(node);
+                    // Also check descendants in case a container was added
+                    const descendants = node.querySelectorAll ? node.querySelectorAll('textarea') : [];
+                    descendants.forEach(checkAndInitialize);
+                }
+            }
+            // Check if text content was added to an existing textarea (e.g., innerHTML/innerText changes)
+            if (mutation.type === 'childList' && mutation.target.tagName === 'TEXTAREA') {
+                mutation.target.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Check existing elements on load
+    document.querySelectorAll('textarea').forEach(checkAndInitialize);
 })();
 
-function tryArea(query) {
-    const textArea = document.querySelector(query)
-    if (textArea) {
-        const messageReferenceNode = textArea.nextSiblings()[1]
-        createPreviewArea(textArea, messageReferenceNode);
-        return true;
+function checkAndInitialize(node) {
+    if (node.tagName !== 'TEXTAREA') return;
+
+    if (node.id === 'message' || node.id === 'desc' || node.id === 'profile' || node.id === 'content') {
+        if (node.dataset.bbcodePreviewInitialized) return;
+        const messageReferenceNode = node.nextSiblings ? node.nextSiblings()[1] : node.nextSibling; // Fallback if nextSiblings not defined
+        if (messageReferenceNode) {
+            createPreviewArea(node, messageReferenceNode);
+            node.dataset.bbcodePreviewInitialized = 'true';
+        }
+    } else if (node.id === 'comment') {
+        if (node.dataset.bbcodePreviewInitialized) return;
+        const replyButton = document.querySelector('#replybutton');
+        if (replyButton) {
+            const commentReferenceNode = replyButton.parentNode.nextSibling;
+            createCommentPreview(node, commentReferenceNode);
+            node.dataset.bbcodePreviewInitialized = 'true';
+        }
     }
-    return false;
 }
 
 const cachedUserIcons = {};
@@ -269,12 +304,12 @@ const thumbRegex = /\[(small|medium|large|huge)thumb\](\d+)(?:,(\d+))?\[\/\1thum
 const shortcutRegex = /#([SMLH])(\d+)(?:,(\d+))?/g;
 
 const bbTagIcons = [
-    {pattern: new RegExp(/\[icon](.*?)\[\/icon]/g), replacement: async (match, username) => createIcon(username)},
+    { pattern: new RegExp(/\[icon](.*?)\[\/icon]/g), replacement: async (match, username) => createIcon(username) },
     {
         pattern: new RegExp(/\[iconname](.*?)\[\/iconname]/g),
         replacement: async (match, username) => createIcon(username, true)
     },
-    {pattern: new RegExp(/@(\w+)/g), replacement: async (match, username) => createIcon(username, true)},
+    { pattern: new RegExp(/@(\w+)/g), replacement: async (match, username) => createIcon(username, true) },
 ];
 
 let warnOnce = false;
@@ -287,7 +322,7 @@ async function updateThumbnails(lines, previewDiv) {
 
     let thumbnailCount = 0;
     let iconCount = 0;
-    const sizeMap = {S: 'small', M: 'medium', L: 'large', H: 'huge'};
+    const sizeMap = { S: 'small', M: 'medium', L: 'large', H: 'huge' };
 
     function updateLine(index, bbcode) {
         lines[index].html = bbcode.html;
@@ -299,7 +334,7 @@ async function updateThumbnails(lines, previewDiv) {
     }
 
     const promises = lines.map(async (bbcode, index) => {
-        for (const {pattern, replacement} of bbTagIcons) {
+        for (const { pattern, replacement } of bbTagIcons) {
             const matches = [...bbcode.html.matchAll(pattern)];
             for (const match of matches) {
                 const now = Date.now();
@@ -334,7 +369,7 @@ async function updateThumbnails(lines, previewDiv) {
                 size = 'medium';
             }
             const key = `${submissionId}-${page ? page : '1'}-${size}`;
-            return {match, submissionId, page, size, key};
+            return { match, submissionId, page, size, key };
         });
 
         const submissionIds = matchesData.map(data => data.submissionId).join(',');
@@ -373,27 +408,27 @@ async function updateThumbnails(lines, previewDiv) {
 }
 
 const bbTagReplacements = [
-    {pattern: new RegExp(/</g), replacement: '&lt;'},
-    {pattern: new RegExp(/>/g), replacement: '&gt;'},
-    {pattern: new RegExp(/(?<= |\[\w]) /g), replacement: '&nbsp;'},
-    {pattern: new RegExp(/\[b]/g), replacement: '<strong>'},
-    {pattern: new RegExp(/\[\/b]/g), replacement: '</strong>'},
-    {pattern: new RegExp(/\[i]/g), replacement: '<em>'},
-    {pattern: new RegExp(/\[\/i]/g), replacement: '</em>'},
-    {pattern: new RegExp(/\[u]/g), replacement: '<span class="underline">'},
-    {pattern: new RegExp(/\[\/u]/g), replacement: '</span>'},
-    {pattern: new RegExp(/\[s]/g), replacement: '<span class="strikethrough">'},
-    {pattern: new RegExp(/\[\/s]/g), replacement: '</span>'},
-    {pattern: new RegExp(/\[t]/g), replacement: '<span class="font_title">'},
-    {pattern: new RegExp(/\[\/t]/g), replacement: '</span>'},
-    {pattern: new RegExp(/\[left]/g), replacement: '<div class="align_left">'},
-    {pattern: new RegExp(/\[\/left]/g), replacement: '</div>'},
-    {pattern: new RegExp(/\[center]/g), replacement: '<div class="align_center">'},
-    {pattern: new RegExp(/\[\/center]/g), replacement: '</div>'},
-    {pattern: new RegExp(/\[right]/g), replacement: '<div class="align_right">'},
-    {pattern: new RegExp(/\[\/right]/g), replacement: '</div>'},
-    {pattern: new RegExp(/\[color=(.*?)]/g), replacement: '<span style="color: $1;">'},
-    {pattern: new RegExp(/\[\/color]/g), replacement: '</span>'},
+    { pattern: new RegExp(/</g), replacement: '&lt;' },
+    { pattern: new RegExp(/>/g), replacement: '&gt;' },
+    { pattern: new RegExp(/(?<= |\[\w]) /g), replacement: '&nbsp;' },
+    { pattern: new RegExp(/\[b]/g), replacement: '<strong>' },
+    { pattern: new RegExp(/\[\/b]/g), replacement: '</strong>' },
+    { pattern: new RegExp(/\[i]/g), replacement: '<em>' },
+    { pattern: new RegExp(/\[\/i]/g), replacement: '</em>' },
+    { pattern: new RegExp(/\[u]/g), replacement: '<span class="underline">' },
+    { pattern: new RegExp(/\[\/u]/g), replacement: '</span>' },
+    { pattern: new RegExp(/\[s]/g), replacement: '<span class="strikethrough">' },
+    { pattern: new RegExp(/\[\/s]/g), replacement: '</span>' },
+    { pattern: new RegExp(/\[t]/g), replacement: '<span class="font_title">' },
+    { pattern: new RegExp(/\[\/t]/g), replacement: '</span>' },
+    { pattern: new RegExp(/\[left]/g), replacement: '<div class="align_left">' },
+    { pattern: new RegExp(/\[\/left]/g), replacement: '</div>' },
+    { pattern: new RegExp(/\[center]/g), replacement: '<div class="align_center">' },
+    { pattern: new RegExp(/\[\/center]/g), replacement: '</div>' },
+    { pattern: new RegExp(/\[right]/g), replacement: '<div class="align_right">' },
+    { pattern: new RegExp(/\[\/right]/g), replacement: '</div>' },
+    { pattern: new RegExp(/\[color=(.*?)]/g), replacement: '<span style="color: $1;">' },
+    { pattern: new RegExp(/\[\/color]/g), replacement: '</span>' },
     {
         pattern: new RegExp(/\[q]/g),
         replacement: '<div class="bbcode_quote"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="bbcode_quote_symbol" rowspan="2">"</td><td class="bbcode_quote_quote">'
@@ -402,9 +437,9 @@ const bbTagReplacements = [
         pattern: new RegExp(/\[q=(.*?)]/g),
         replacement: '<div class="bbcode_quote"><table cellpadding="0" cellspacing="0"><tbody><tr><td class="bbcode_quote_symbol" rowspan="2">"</td><td class="bbcode_quote_author">$1 wrote:</td></tr><tr><td class="bbcode_quote_quote">'
     },
-    {pattern: new RegExp(/\[\/q]/g), replacement: '</td></tr></tbody></table></div>'},
-    {pattern: new RegExp(/\[url=(.*?)](.*?)\[\/url]/g), replacement: '<a href="$1" rel="nofollow">$2</a>'},
-    {pattern: new RegExp(/\[url](.*?)\[\/url]/g), replacement: '<a href="$1" rel="nofollow">$1</a>'},
+    { pattern: new RegExp(/\[\/q]/g), replacement: '</td></tr></tbody></table></div>' },
+    { pattern: new RegExp(/\[url=(.*?)](.*?)\[\/url]/g), replacement: '<a href="$1" rel="nofollow">$2</a>' },
+    { pattern: new RegExp(/\[url](.*?)\[\/url]/g), replacement: '<a href="$1" rel="nofollow">$1</a>' },
     {
         pattern: new RegExp(/\[name](.*?)\[\/name]/g),
         replacement: '<a class="widget_userNameSmall watching" href="/$1">$1</a>'
@@ -420,16 +455,16 @@ const bbTagReplacements = [
 ];
 
 const escapes = [
-    {pattern: new RegExp(/</g), replacement: '&lt;'},
-    {pattern: new RegExp(/>/g), replacement: '&gt;'},
-    {pattern: new RegExp(/#/g), replacement: '&#35;'},
-    {pattern: new RegExp(/\[/g), replacement: '&#91;'},
-    {pattern: new RegExp(/\//g), replacement: '&#47;'},
-    {pattern: new RegExp(/]/g), replacement: '&#93;'}
+    { pattern: new RegExp(/</g), replacement: '&lt;' },
+    { pattern: new RegExp(/>/g), replacement: '&gt;' },
+    { pattern: new RegExp(/#/g), replacement: '&#35;' },
+    { pattern: new RegExp(/\[/g), replacement: '&#91;' },
+    { pattern: new RegExp(/\//g), replacement: '&#47;' },
+    { pattern: new RegExp(/]/g), replacement: '&#93;' }
 ]
 
 function escape(html) {
-    for (const {pattern, replacement} of escapes) {
+    for (const { pattern, replacement } of escapes) {
         html = html.replace(pattern, replacement);
     }
     return html;
@@ -437,7 +472,7 @@ function escape(html) {
 
 // Function to convert BBCode to HTML
 async function bbcodeToHtml(bbcode) {
-    const code = {started: false, left: '', code: '', right: ''};
+    const code = { started: false, left: '', code: '', right: '' };
     for (const each of bbcode) {
         const lineHash = hashString(each.line);
 
@@ -492,7 +527,7 @@ async function bbcodeToHtml(bbcode) {
         each.html = each.html.replace(ibName, '[name]$1[/name]');
 
         // Apply BBCode to HTML replacements
-        for (const {pattern, replacement} of bbTagReplacements) {
+        for (const { pattern, replacement } of bbTagReplacements) {
             if (typeof replacement === 'function') {
                 const matches = [...each.html.matchAll(pattern)];
                 for (const match of matches) {
@@ -584,7 +619,7 @@ function wrapSelectedText(textarea, before, after) {
 
     // Update the selection range
     textarea.setSelectionRange(newStart, newEnd);
-    const event = new Event('input', {bubbles: true});
+    const event = new Event('input', { bubbles: true });
     textarea.dispatchEvent(event);
 }
 
@@ -644,18 +679,18 @@ function commentPreview(user) {
                     <span class="widget_userNameSmall "><a class="widget_userNameSmall" href="/Elly">Elly</a></span>
                 </div>
 
-                <div currentdatetype="elapsed" class="widget_commentsList_comment_details_date">a moment ago</div>
+                <div currentdatetype="elapsed" class="widget_commentsList_comment_details_date">BBCode preview</div>
                 <div currentdatetype="exact" class="widget_commentsList_comment_details_date" style="display: none;">${new Date().toISOString()}</div>
 
                 <div class="widget_commentsList_comment_details_links">
-                    <a class="widget_commentsList_comment_reply_link" username="${user.username}" title="Reply to comment" style="cursor: not-allowed;">reply</a>
-                    <a class="widget_commentsList_comment_edit_link" title="Edit comment" username="${user.username}" style="cursor: not-allowed;">edit</a>
-                    <a title="Link (Right Click)" style="cursor: not-allowed;">link</a>
+                    <a class="widget_commentsList_comment_reply_link" username="${user.username}" title="Reply to comment" style="color: #555; text-decoration: line-through; cursor: not-allowed;">reply</a>
+                    <a class="widget_commentsList_comment_edit_link" title="Edit comment" username="${user.username}" style="color: #555; text-decoration: line-through; cursor: not-allowed;">edit</a>
+                    <a title="Link (Right Click)" style="color: #555; text-decoration: line-through; cursor: not-allowed;">link</a>
                 </div>
             </div>
             <div style="width: 648px; float: left; padding-left: 16px;">
 
-                <div style="min-height: 80px; position: relative; padding: 10px; border: 2px solid #babdb6; background-color: #d3d7cf; border-radius: 10px; box-shadow: 0 5px 5px -5px black;">
+                <div style="min-height: 80px; position: relative; padding: 10px; border: 2px solid #babdb6; background: repeating-linear-gradient(45deg, #d3d7cf, #d3d7cf 10px, rgba(0, 0, 0, 0.05) 10px, rgba(0, 0, 0, 0.05) 20px); border-radius: 10px; box-shadow: 0 5px 5px -5px black;">
 
                     <div style="width: 10px; height: 20px; position: absolute; left: -10px; top: 40px; background-image: url('https://jp.ib.metapix.net/images80/comments/tail.png');"></div>
 
@@ -675,7 +710,7 @@ function commentPreview(user) {
 async function updatePreview(placeholder, textarea, previewDiv) {
     placeholder.style.display = 'none';
 
-    const bbcode = textarea.value.split('\n').map(line => ({line: line, html: line}));
+    const bbcode = textarea.value.split('\n').map(line => ({ line: line, html: line }));
 
     await bbcodeToHtml(bbcode);
     previewDiv.innerHTML = bbcode.map(bbcode => bbcode.html).join('<br>');
@@ -761,14 +796,21 @@ function createPreviewArea(textarea, referenceNode) {
 
     // Add keydown event listener for BBCode shortcuts
     addKeydownListenerToTextarea(textarea);
-
-    // Event listener for live preview
     textarea.addEventListener('input', async () => {
         if (textarea.value.trim() === '') {
-            placeholder.style.display = 'block';
             previewDiv.innerHTML = '';
-            previewDiv.appendChild(placeholder);
+            placeholder.style.display = 'block';
         } else await updatePreview(placeholder, textarea, previewDiv);
+    });
+
+    // Fallback event listeners
+    ['mouseout', 'mouseup', 'keyup'].forEach(eventType => {
+        textarea.addEventListener(eventType, async () => {
+            if (textarea.value.trim() === '') {
+                previewDiv.innerHTML = '';
+                placeholder.style.display = 'block';
+            } else await updatePreview(placeholder, textarea, previewDiv);
+        });
     });
 
     if (textarea.value.trim() !== '') {
