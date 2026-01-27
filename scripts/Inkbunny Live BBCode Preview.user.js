@@ -683,9 +683,9 @@ function commentPreview(user) {
                 <div currentdatetype="exact" class="widget_commentsList_comment_details_date" style="display: none;">${new Date().toISOString()}</div>
 
                 <div class="widget_commentsList_comment_details_links">
-                    <a class="widget_commentsList_comment_reply_link" username="${user.username}" title="Reply to comment" style="color: #555; text-decoration: line-through; cursor: not-allowed;">reply</a>
-                    <a class="widget_commentsList_comment_edit_link" title="Edit comment" username="${user.username}" style="color: #555; text-decoration: line-through; cursor: not-allowed;">edit</a>
-                    <a title="Link (Right Click)" style="color: #555; text-decoration: line-through; cursor: not-allowed;">link</a>
+                    <a class="widget_commentsList_comment_reply_link" username="${user.username}" title="Reply to comment" style="color: #555; font-style: italic; cursor: not-allowed;">reply</a>
+                    <a class="widget_commentsList_comment_edit_link" title="Edit comment" username="${user.username}" style="color: #555; font-style: italic; cursor: not-allowed;">edit</a>
+                    <a title="Link (Right Click)" style="color: #555; font-style: italic; cursor: not-allowed;">link</a>
                 </div>
             </div>
             <div style="width: 648px; float: left; padding-left: 16px;">
