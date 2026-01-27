@@ -676,7 +676,7 @@ function commentPreview(user) {
             </div>
             <div class="widget_commentsList_comment_details">
                 <div class="widget_commentsList_comment_details_username">
-                    <span class="widget_userNameSmall "><a class="widget_userNameSmall" href="/Elly">Elly</a></span>
+                    <span class="widget_userNameSmall "><a class="widget_userNameSmall" href="/${user.username}">${user.username}</a></span>
                 </div>
 
                 <div currentdatetype="elapsed" class="widget_commentsList_comment_details_date">BBCode preview</div>
