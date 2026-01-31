@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Inkbunny Live BBCode Preview
 // @namespace    http://tampermonkey.net/
-// @version      2.4
+// @version      2.4.1
 // @description  Adds a live BBCode preview for the message and comment textareas on Inkbunny, including submission thumbnails and various BBCode tags
 // @author       https://github.com/ellypaws
 // @match        *://inkbunny.net/*
@@ -519,8 +519,18 @@ async function bbcodeToHtml(bbcode) {
         }
 
         // Replace plain URLs with [url] BBCode
-        const urlRegex = /(?<!\[url=)(https?:\/\/\S+)/g;
-        each.html = each.html.replace(urlRegex, '[url=$1]$1[/url]');
+        // We use a specific regex to capture existing [url] tags FIRST so we can ignore them
+        // Pattern 1: Matches [url=...]...[/url]
+        // Pattern 2: Matches https://... (plain URLs)
+        const urlRegex = /(\[url=.*?][\s\S]*?\[\/url])|(https?:\/\/\S+)/gi;
+
+        each.html = each.html.replace(urlRegex, (match, existingTag, plainUrl) => {
+            // If the match corresponds to Group 1 (an existing tag), return it unchanged
+            if (existingTag) return match;
+
+            // If it corresponds to Group 2 (a plain URL), wrap it
+            return `[url=${plainUrl}]${plainUrl}[/url]`;
+        });
 
         // Replace ib! with [name] BBCode
         const ibName = /ib!(\w+)/g;
@@ -676,7 +686,7 @@ function commentPreview(user) {
             </div>
             <div class="widget_commentsList_comment_details">
                 <div class="widget_commentsList_comment_details_username">
-                    <span class="widget_userNameSmall "><a class="widget_userNameSmall" href="/${user.username}">${user.username}</a></span>
+                    <span class="widget_userNameSmall "><a class="widget_userNameSmall" href="/Elly">Elly</a></span>
                 </div>
 
                 <div currentdatetype="elapsed" class="widget_commentsList_comment_details_date">BBCode preview</div>
