@@ -347,6 +347,13 @@
         }
     }
 
+    function nodeSource(node) {
+        if (!node) return '';
+        if (node.type === 'text') return node.value;
+        if (node.type === 'newline') return '\n';
+        return node.source || '';
+    }
+
     class BbcodeParser {
         constructor() {
             this.ids = new IdFactory();
@@ -358,9 +365,38 @@
         parse(input) {
             this.ids = new IdFactory();
             const normalized = String(input ?? '').replace(/\r\n?/g, '\n');
-            const paragraphs = normalized
-                .split(/\n{2,}/)
-                .map((paragraph) => new ParagraphNode(this.ids.next(), this.mergeAdjacentText(this.parseInline(paragraph, 0, null).children), paragraph));
+            const nodes = this.mergeAdjacentText(this.parseInline(normalized, 0, null).children);
+            const paragraphs = [];
+            let currentNodes = [];
+
+            for (let index = 0; index < nodes.length; index += 1) {
+                const node = nodes[index];
+                if (node.type !== 'newline') {
+                    currentNodes.push(node);
+                    continue;
+                }
+
+                let newlineCount = 1;
+                while (index + newlineCount < nodes.length && nodes[index + newlineCount].type === 'newline') {
+                    newlineCount += 1;
+                }
+
+                if (newlineCount >= 2) {
+                    if (currentNodes.length > 0) {
+                        paragraphs.push(new ParagraphNode(this.ids.next(), currentNodes, currentNodes.map(nodeSource).join('')));
+                        currentNodes = [];
+                    }
+                    index += newlineCount - 1;
+                    continue;
+                }
+
+                currentNodes.push(node);
+            }
+
+            if (currentNodes.length > 0 || paragraphs.length === 0) {
+                paragraphs.push(new ParagraphNode(this.ids.next(), currentNodes, currentNodes.map(nodeSource).join('')));
+            }
+
             return new DocumentNode(this.ids.next(), paragraphs, normalized);
         }
 
@@ -373,6 +409,11 @@
                 const closeToken = this.readCloseTag(input, index);
                 if (closeToken && closeToken.name === stopTag) {
                     return { children, index: closeToken.end, closed: true };
+                }
+                if (closeToken) {
+                    children.push(new TextNode(this.ids.next(), closeToken.raw));
+                    index = closeToken.end;
+                    continue;
                 }
 
                 const openToken = this.readOpenTag(input, index);
