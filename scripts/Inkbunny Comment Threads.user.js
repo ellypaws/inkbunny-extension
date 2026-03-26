@@ -30,8 +30,8 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 18px;
-            height: 18px;
+            width: 24px;
+            height: 24px;
             margin: 0;
             padding: 0;
             border: 0;
@@ -79,6 +79,16 @@
             outline-offset: 1px;
             border-radius: 999px;
         }
+        .collapsed-username-label {
+            position: absolute;
+            display: none;
+            white-space: nowrap;
+            color: #555;
+            font-size: 12px;
+            line-height: 1.2;
+            z-index: 3;
+            pointer-events: none;
+        }
     `;
     document.head.appendChild(style);
 
@@ -106,7 +116,9 @@
             isLast: false,
             collapsed: false,
             indentWrapper: indentWrapper,
-            toggleButton: null
+            toggleButton: null,
+            usernameLabel: null,
+            usernameText: c.querySelector('.widget_commentsList_comment_details_username')?.textContent?.trim() || ''
         };
     });
 
@@ -212,12 +224,24 @@
         toggleBtn.className = 'collapse-toggle-btn';
         toggleBtn.type = 'button';
         toggleBtn.innerHTML = TOGGLE_ICON_SVG;
-        toggleBtn.style.left = `${leftPos - 9}px`;
-        toggleBtn.style.top = `${topPos - 9}px`;
+        toggleBtn.style.left = `${leftPos - 12}px`;
+        toggleBtn.style.top = `${topPos - 12}px`;
         syncToggleButton(toggleBtn, node.collapsed);
         bindHover(toggleBtn, node.el.id);
         node.toggleButton = toggleBtn;
         targetWrapper.appendChild(toggleBtn);
+    }
+
+    function appendCollapsedUsernameLabel(targetWrapper, node, leftPos, topPos) {
+        if (!node.usernameText) return;
+
+        let label = document.createElement('span');
+        label.className = 'collapsed-username-label';
+        label.textContent = node.usernameText;
+        label.style.left = `${leftPos + 14}px`;
+        label.style.top = `${topPos - 7}px`;
+        node.usernameLabel = label;
+        targetWrapper.appendChild(label);
     }
 
     commentNodes.forEach(node => {
@@ -226,11 +250,6 @@
 
         targetWrapper.style.position = 'relative'; // Required for absolute line injection
         targetWrapper.style.overflow = 'visible';
-
-        if (node.level === 0 && node.children.length > 0) {
-            appendVerticalLine(targetWrapper, node.el.id, LINE_OFFSET, -LINE_OVERLAP, -LINE_OVERLAP);
-            appendToggleButton(targetWrapper, node, LINE_OFFSET, CURVE_HEIGHT);
-        }
 
         let curr = node;
         while (curr.parent) {
@@ -243,6 +262,7 @@
 
                 if (node.children.length > 0) {
                     appendToggleButton(targetWrapper, node, leftPos + CURVE_WIDTH, CURVE_HEIGHT);
+                    appendCollapsedUsernameLabel(targetWrapper, node, leftPos + CURVE_WIDTH, CURVE_HEIGHT);
                 }
 
                 if (!node.isLast) {
@@ -281,6 +301,8 @@
                 node.el.style.display = '';
 
                 const toggle = node.toggleButton;
+                const usernameLabel = node.usernameLabel;
+                const detailsUsername = node.el.querySelector('.widget_commentsList_comment_details_username');
                 const userIcon = node.el.querySelector('.widget_commentsList_comment_usericon');
                 const bubble = node.el.querySelector('div[style*="min-height"]');
                 const links = node.el.querySelector('.widget_commentsList_comment_details_links');
@@ -288,6 +310,8 @@
                 // The collapsed node hides its body, but keeps its top header/avatar slot minimized
                 if (node.collapsed) {
                     if (toggle) syncToggleButton(toggle, true);
+                    if (usernameLabel) usernameLabel.style.display = '';
+                    if (detailsUsername) detailsUsername.style.visibility = 'hidden';
                     if (userIcon) {
                         userIcon.style.display = '';
                         userIcon.style.visibility = 'hidden';
@@ -296,6 +320,8 @@
                     if (links) links.style.display = 'none';
                 } else {
                     if (toggle) syncToggleButton(toggle, false);
+                    if (usernameLabel) usernameLabel.style.display = 'none';
+                    if (detailsUsername) detailsUsername.style.visibility = '';
                     if (userIcon) {
                         userIcon.style.display = '';
                         userIcon.style.visibility = '';
