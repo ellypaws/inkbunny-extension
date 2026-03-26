@@ -359,7 +359,7 @@
                     if (links) links.style.display = 'none';
                     if (targetWrapper) {
                         targetWrapper.style.minHeight = '30px';
-                        targetWrapper.style.marginLeft = '100px';
+                        targetWrapper.style.marginLeft = '256px';
                     }
                 } else {
                     if (toggle) syncToggleButton(toggle, false);
