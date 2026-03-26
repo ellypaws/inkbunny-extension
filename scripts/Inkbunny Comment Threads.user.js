@@ -2,7 +2,7 @@
 // @name         Inkbunny Comment Threads
 // @namespace    http://tampermonkey.net/
 // @version      1.0
-// @description  Adds visual curving thread lines and Reddit-like collapsible comment trees to Inkbunny.
+// @description  Adds visual curving thread lines and collapsible comment trees to Inkbunny.
 // @author       ellypaws
 // @match        https://inkbunny.net/s/*
 // @match        https://inkbunny.net/j/*
@@ -19,20 +19,65 @@
         .ib-thread-line {
             transition: border-color 0.2s;
             z-index: 1;
+            box-sizing: border-box;
             pointer-events: auto; /* ensures clickable area */
         }
         .ib-thread-line.hovered {
             border-color: #ef4444 !important; /* Highlights red on hover */
         }
         .collapse-toggle-btn {
-            text-decoration: none !important;
+            position: absolute;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            background: transparent;
             user-select: none;
             transition: color 0.2s;
-            font-family: monospace;
-            font-size: 1.1em;
+            color: #888;
+            cursor: pointer;
+            z-index: 3;
+            appearance: none;
         }
-        .collapse-toggle-btn:hover {
+        .collapse-toggle-btn svg {
+            display: block;
+            width: 16px;
+            height: 16px;
+            overflow: visible;
+        }
+        .collapse-toggle-btn .toggle-disc {
+            fill: #f0f1eb;
+            stroke: currentColor;
+            stroke-width: 1.5;
+            vector-effect: non-scaling-stroke;
+        }
+        .collapse-toggle-btn .toggle-mark {
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            vector-effect: non-scaling-stroke;
+        }
+        .collapse-toggle-btn .toggle-plus {
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .collapse-toggle-btn.is-collapsed .toggle-plus {
+            opacity: 1;
+        }
+        .collapse-toggle-btn:hover,
+        .collapse-toggle-btn:focus-visible {
             color: #ef4444 !important;
+        }
+        .collapse-toggle-btn:focus-visible {
+            outline: 1px solid #ef4444;
+            outline-offset: 1px;
+            border-radius: 999px;
         }
     `;
     document.head.appendChild(style);
@@ -60,7 +105,8 @@
             parent: null,
             isLast: false,
             collapsed: false,
-            indentWrapper: indentWrapper
+            indentWrapper: indentWrapper,
+            toggleButton: null
         };
     });
 
@@ -84,30 +130,94 @@
             node.children[node.children.length - 1].isLast = true;
         }
     });
+    const nodeById = new Map(commentNodes.map(node => [node.el.id, node]));
 
     // 4. Draw geometry and bind UI Interactions
     const LINE_OFFSET = 14;
     const LEVEL_WIDTH = 29;
     const LINE_COLOR = '#64748b'; // Sleek slate gray
-    const BORDER_STYLE = `2px solid ${LINE_COLOR}`;
+    const BORDER_STYLE = `1px solid ${LINE_COLOR}`;
+    const LINE_OVERLAP = 3;
+    const CURVE_WIDTH = 14;
+    const CURVE_HEIGHT = 20;
+    const CURVE_RADIUS_X = 9;
+    const CURVE_RADIUS_Y = 11;
+    const TOGGLE_ICON_SVG = `
+        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+            <circle class="toggle-disc" cx="10" cy="10" r="7"></circle>
+            <path class="toggle-mark" d="M6.5 10h7"></path>
+            <path class="toggle-mark toggle-plus" d="M10 6.5v7"></path>
+        </svg>
+    `;
 
     function bindHover(element, targetId) {
+        const targetNode = nodeById.get(targetId);
+
         element.addEventListener('mouseenter', () => {
             document.querySelectorAll(`.ib-thread-line[data-target="${targetId}"]`).forEach(el => el.classList.add('hovered'));
         });
         element.addEventListener('mouseleave', () => {
             document.querySelectorAll(`.ib-thread-line[data-target="${targetId}"]`).forEach(el => el.classList.remove('hovered'));
         });
-        element.style.cursor = 'pointer';
-        element.title = "Collapse Thread";
-        element.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const targetNode = commentNodes.find(n => n.el.id === targetId);
-            if (targetNode) {
+
+        if (targetNode?.children.length > 0) {
+            element.style.cursor = 'pointer';
+            element.title = "Collapse Thread";
+            element.addEventListener('click', (e) => {
+                e.stopPropagation();
                 targetNode.collapsed = !targetNode.collapsed;
                 updateVisibility();
-            }
-        });
+            });
+        }
+    }
+
+    function syncToggleButton(toggleBtn, collapsed) {
+        toggleBtn.classList.toggle('is-collapsed', collapsed);
+        toggleBtn.setAttribute('aria-label', collapsed ? 'Expand thread' : 'Collapse thread');
+        toggleBtn.title = collapsed ? 'Expand Thread' : 'Collapse Thread';
+    }
+
+    function appendVerticalLine(targetWrapper, targetId, leftPos, top, bottom) {
+        let line = document.createElement('div');
+        line.classList.add('ib-thread-line');
+        line.setAttribute('data-target', targetId);
+        line.style.position = 'absolute';
+        line.style.left = `${leftPos}px`;
+        line.style.top = `${top}px`;
+        line.style.bottom = `${bottom}px`;
+        line.style.width = '0';
+        line.style.borderLeft = BORDER_STYLE;
+        bindHover(line, targetId);
+        targetWrapper.appendChild(line);
+    }
+
+    function appendThreadCurve(targetWrapper, targetId, leftPos) {
+        let curve = document.createElement('div');
+        curve.classList.add('ib-thread-line');
+        curve.setAttribute('data-target', targetId);
+        curve.style.position = 'absolute';
+        curve.style.left = `${leftPos}px`;
+        curve.style.top = `${-LINE_OVERLAP}px`;
+        curve.style.width = `${CURVE_WIDTH}px`;
+        curve.style.height = `${CURVE_HEIGHT + LINE_OVERLAP}px`;
+        curve.style.borderLeft = BORDER_STYLE;
+        curve.style.borderBottom = BORDER_STYLE;
+        curve.style.borderBottomLeftRadius = `${CURVE_RADIUS_X}px ${CURVE_RADIUS_Y}px`;
+        bindHover(curve, targetId);
+        targetWrapper.appendChild(curve);
+    }
+
+    function appendToggleButton(targetWrapper, node, leftPos, topPos) {
+        let toggleBtn = document.createElement('button');
+        toggleBtn.className = 'collapse-toggle-btn';
+        toggleBtn.type = 'button';
+        toggleBtn.innerHTML = TOGGLE_ICON_SVG;
+        toggleBtn.style.left = `${leftPos - 9}px`;
+        toggleBtn.style.top = `${topPos - 9}px`;
+        syncToggleButton(toggleBtn, node.collapsed);
+        bindHover(toggleBtn, node.el.id);
+        node.toggleButton = toggleBtn;
+        targetWrapper.appendChild(toggleBtn);
     }
 
     commentNodes.forEach(node => {
@@ -115,6 +225,12 @@
         if (!targetWrapper) return;
 
         targetWrapper.style.position = 'relative'; // Required for absolute line injection
+        targetWrapper.style.overflow = 'visible';
+
+        if (node.level === 0 && node.children.length > 0) {
+            appendVerticalLine(targetWrapper, node.el.id, LINE_OFFSET, -LINE_OVERLAP, -LINE_OVERLAP);
+            appendToggleButton(targetWrapper, node, LINE_OFFSET, CURVE_HEIGHT);
+        }
 
         let curr = node;
         while (curr.parent) {
@@ -122,46 +238,15 @@
             let leftPos = (lvl - 1) * LEVEL_WIDTH + LINE_OFFSET;
 
             if (curr === node) {
-                if (node.isLast) {
-                    // Render "L-Curve" endcap
-                    let line = document.createElement('div');
-                    line.classList.add('ib-thread-line');
-                    line.setAttribute('data-target', curr.el.id);
-                    line.style.position = 'absolute';
-                    line.style.left = `${leftPos}px`;
-                    line.style.top = '0';
-                    line.style.borderLeft = BORDER_STYLE;
-                    line.style.borderBottom = BORDER_STYLE;
-                    line.style.borderBottomLeftRadius = '6px';
-                    line.style.width = '15px';
-                    line.style.height = '20px';
-                    line.style.bottom = 'auto';
-                    bindHover(line, curr.el.id);
-                    targetWrapper.appendChild(line);
-                } else {
-                    // Render continuous vertical + branching T-junction
-                    let line = document.createElement('div');
-                    line.classList.add('ib-thread-line');
-                    line.setAttribute('data-target', curr.el.id);
-                    line.style.position = 'absolute';
-                    line.style.left = `${leftPos}px`;
-                    line.style.top = '0';
-                    line.style.bottom = '0';
-                    line.style.width = '0px';
-                    line.style.borderLeft = BORDER_STYLE;
-                    bindHover(line, curr.el.id);
-                    targetWrapper.appendChild(line);
+                // Render a continuous elbow from the top into the comment.
+                appendThreadCurve(targetWrapper, curr.el.id, leftPos);
 
-                    let branch = document.createElement('div');
-                    branch.classList.add('ib-thread-line');
-                    branch.setAttribute('data-target', curr.el.id);
-                    branch.style.position = 'absolute';
-                    branch.style.left = `${leftPos}px`;
-                    branch.style.top = '20px';
-                    branch.style.width = '15px';
-                    branch.style.borderTop = BORDER_STYLE;
-                    bindHover(branch, curr.el.id);
-                    targetWrapper.appendChild(branch);
+                if (node.children.length > 0) {
+                    appendToggleButton(targetWrapper, node, leftPos + CURVE_WIDTH, CURVE_HEIGHT);
+                }
+
+                if (!node.isLast) {
+                    appendVerticalLine(targetWrapper, curr.el.id, leftPos, CURVE_HEIGHT, -LINE_OVERLAP);
                 }
             } else {
                 // Pass-through tracking line extending from an ancestor
@@ -169,35 +254,9 @@
                     curr = curr.parent;
                     continue; // Halt line drawing if the ancestor has already "bottomed out"
                 }
-                let line = document.createElement('div');
-                line.classList.add('ib-thread-line');
-                line.setAttribute('data-target', curr.el.id);
-                line.style.position = 'absolute';
-                line.style.left = `${leftPos}px`;
-                line.style.top = '0';
-                line.style.bottom = '0';
-                line.style.width = '0px';
-                line.style.borderLeft = BORDER_STYLE;
-                bindHover(line, curr.el.id);
-                targetWrapper.appendChild(line);
+                appendVerticalLine(targetWrapper, curr.el.id, leftPos, -LINE_OVERLAP, -LINE_OVERLAP);
             }
             curr = curr.parent;
-        }
-
-        // Apply toggler bracket buttons
-        const details = node.el.querySelector('.widget_commentsList_comment_details_username');
-        if (details) {
-            let toggleBtn = document.createElement('a');
-            toggleBtn.className = 'collapse-toggle-btn';
-            toggleBtn.innerText = '[-]';
-            toggleBtn.style.color = '#888';
-            toggleBtn.style.marginRight = '5px';
-            toggleBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                node.collapsed = !node.collapsed;
-                updateVisibility();
-            });
-            details.insertBefore(toggleBtn, details.firstChild);
         }
     });
 
@@ -221,20 +280,26 @@
             } else {
                 node.el.style.display = '';
 
-                const toggle = node.el.querySelector('.collapse-toggle-btn');
+                const toggle = node.toggleButton;
                 const userIcon = node.el.querySelector('.widget_commentsList_comment_usericon');
                 const bubble = node.el.querySelector('div[style*="min-height"]');
                 const links = node.el.querySelector('.widget_commentsList_comment_details_links');
 
                 // The collapsed node hides its body, but keeps its top header/avatar slot minimized
                 if (node.collapsed) {
-                    if (toggle) toggle.innerText = '[+]';
-                    if (userIcon) userIcon.style.display = 'none';
+                    if (toggle) syncToggleButton(toggle, true);
+                    if (userIcon) {
+                        userIcon.style.display = '';
+                        userIcon.style.visibility = 'hidden';
+                    }
                     if (bubble) bubble.style.display = 'none';
                     if (links) links.style.display = 'none';
                 } else {
-                    if (toggle) toggle.innerText = '[-]';
-                    if (userIcon) userIcon.style.display = '';
+                    if (toggle) syncToggleButton(toggle, false);
+                    if (userIcon) {
+                        userIcon.style.display = '';
+                        userIcon.style.visibility = '';
+                    }
                     if (bubble) bubble.style.display = '';
                     if (links) links.style.display = '';
                 }
