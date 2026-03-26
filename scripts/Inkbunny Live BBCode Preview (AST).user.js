@@ -50,6 +50,10 @@
         margin-bottom: 10px;
     }
 
+    body.ib-ast-privatemessage-page .ib-ast-tabs {
+        margin-left: -4px;
+    }
+
     body.ib-ast-profile-page .ib-ast-tabs.is-preview-active {
         margin-bottom: 0;
     }
@@ -975,6 +979,56 @@
     }
 
     class PreviewTemplateFactory {
+        static createForPrivateMessage(user) {
+            const root = document.createElement('div');
+            root.style.marginTop = '10px';
+            root.innerHTML = `<table style="border-collapse: collapse; width: 920px; max-width: 100%;"><tbody><tr>
+                <td style="width: 140px; padding: 10px 0px; vertical-align: top;">
+                    <div style="margin-bottom: 5px; font-family: Trebuchet MS;">&nbsp;</div>
+                    <div style="width: 50px; height: 50px; position: relative; margin: 0px auto;">
+                        <a style="position: relative; border: 0px;" href="https://inkbunny.net/${user.username}">
+                            <img class="shadowedimage" style="border: 0px;" src="${user.iconUrl}" width="50" height="50" alt="${user.username}" title="${user.username}">
+                        </a>
+                    </div>
+                    <div style="margin-top: 5px; color: #666666; font-family: Trebuchet MS; text-align: center;">
+                        <span class="widget_userNameSmall"><a class="widget_userNameSmall" href="/${user.username}">${user.username}</a></span>
+                    </div>
+                </td>
+                <td style="width: 16px; padding: 10px 0px; vertical-align: top;">
+                    <div style="margin-bottom: 5px; font-family: Trebuchet MS;">&nbsp;</div>
+                    <div style="height: 50px; position: relative;">
+                        <div style="width: 0px; height: 0px; position: absolute; top: 50%; right: 0px;">
+                            <div style="width: 0px; height: 0px; position: absolute; top: -5px; right: 0px; background-color: transparent; border: 5px solid transparent; border-right: 10px solid #babdb6;"></div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 5px; font-family: Trebuchet MS;">&nbsp;</div>
+                </td>
+                <td style="width: 608px; padding: 0px; vertical-align: top;">
+                    <div style="padding: 5px 10px; color: #666666; font-size: 8pt;">BBCode preview</div>
+                    <div style="position: relative;">
+                        <div style="width: 10px; position: absolute; left: 0px; top: 0px; bottom: 0px; background-color: #babdb6; border-radius: 5px 0px 0px 5px;"></div>
+                        <div style="margin-left: 10px; padding: 10px; background: repeating-linear-gradient(45deg, #d3d7cf, #d3d7cf 10px, rgba(0, 0, 0, 0.05) 10px, rgba(0, 0, 0, 0.05) 20px); border-radius: 0px 5px 5px 0px; color: #333333;">
+                            <div data-role="bbcode-preview" style="overflow-wrap: break-word;"></div>
+                            <div data-role="bbcode-placeholder" style="word-wrap: break-word; color: #555; text-align: center; min-height: 80px; line-height: 80px;">Start typing to preview</div>
+                        </div>
+                    </div>
+                    <div style="padding: 5px 10px; font-size: 8pt;">&nbsp;</div>
+                </td>
+                <td style="width: 16px; padding: 10px 0px; vertical-align: top;">
+                    <div style="margin-bottom: 5px; font-family: Trebuchet MS;">&nbsp;</div>
+                    <div style="height: 50px; position: relative;"></div>
+                    <div style="margin-top: 5px; font-family: Trebuchet MS;">&nbsp;</div>
+                </td>
+                <td style="width: 140px; padding: 10px 0px; vertical-align: top;">&nbsp;</td>
+            </tr></tbody></table>`;
+
+            return {
+                root,
+                preview: root.querySelector('[data-role="bbcode-preview"]'),
+                placeholder: root.querySelector('[data-role="bbcode-placeholder"]')
+            };
+        }
+
         static createForComment(user) {
             const root = document.createElement('div');
             root.innerHTML = `<div class="widget_commentsList_comment">
@@ -1126,12 +1180,18 @@
         }
 
         createTemplate() {
+            const avatarImage = document.querySelector('.loggedin_userdetails img');
+            const user = {
+                iconUrl: avatarImage?.src?.replace('tiny', 'large') || NO_ICON,
+                username: avatarImage?.title || 'User'
+            };
+
+            if (document.body.classList.contains('ib-ast-privatemessage-page')) {
+                return PreviewTemplateFactory.createForPrivateMessage(user);
+            }
+
             if (this.textarea.id === 'comment') {
-                const avatarImage = document.querySelector('.loggedin_userdetails img');
-                return PreviewTemplateFactory.createForComment({
-                    iconUrl: avatarImage?.src?.replace('tiny', 'large') || NO_ICON,
-                    username: avatarImage?.title || 'User'
-                });
+                return PreviewTemplateFactory.createForComment(user);
             }
             return PreviewTemplateFactory.createStandalone();
         }
@@ -1272,6 +1332,9 @@
         markPageType() {
             if (/\/profile\.php$/i.test(window.location.pathname)) {
                 document.body.classList.add('ib-ast-profile-page');
+            }
+            if (/\/privatemessageview\.php$/i.test(window.location.pathname)) {
+                document.body.classList.add('ib-ast-privatemessage-page');
             }
         }
 
