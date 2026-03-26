@@ -20,10 +20,16 @@
             transition: border-color 0.2s;
             z-index: 1;
             box-sizing: border-box;
-            pointer-events: auto; /* ensures clickable area */
+            pointer-events: none;
         }
         .ib-thread-line.hovered {
             border-color: #ef4444 !important; /* Highlights red on hover */
+        }
+        .ib-thread-hitbox {
+            position: absolute;
+            z-index: 2;
+            background: transparent;
+            pointer-events: auto;
         }
         .collapse-toggle-btn {
             position: absolute;
@@ -118,7 +124,7 @@
             indentWrapper: indentWrapper,
             toggleButton: null,
             usernameLabel: null,
-            usernameText: c.querySelector('.widget_commentsList_comment_details_username')?.textContent?.trim() || ''
+            usernameText: c.querySelector('.widget_commentsList_comment_details_username .widget_userNameSmall a, .widget_commentsList_comment_details_username .widget_userNameSmall')?.textContent?.trim() || ''
         };
     });
 
@@ -150,6 +156,7 @@
     const LINE_COLOR = '#64748b'; // Sleek slate gray
     const BORDER_STYLE = `1px solid ${LINE_COLOR}`;
     const LINE_OVERLAP = 3;
+    const LINE_HITBOX = 16;
     const CURVE_WIDTH = 14;
     const CURVE_HEIGHT = 20;
     const CURVE_RADIUS_X = 9;
@@ -172,7 +179,7 @@
             document.querySelectorAll(`.ib-thread-line[data-target="${targetId}"]`).forEach(el => el.classList.remove('hovered'));
         });
 
-        if (targetNode?.children.length > 0) {
+        if (targetNode?.parent) {
             element.style.cursor = 'pointer';
             element.title = "Collapse Thread";
             element.addEventListener('click', (e) => {
@@ -199,8 +206,16 @@
         line.style.bottom = `${bottom}px`;
         line.style.width = '0';
         line.style.borderLeft = BORDER_STYLE;
-        bindHover(line, targetId);
         targetWrapper.appendChild(line);
+
+        let hitbox = document.createElement('div');
+        hitbox.className = 'ib-thread-hitbox';
+        hitbox.style.left = `${leftPos - Math.floor(LINE_HITBOX / 2)}px`;
+        hitbox.style.top = `${top}px`;
+        hitbox.style.bottom = `${bottom}px`;
+        hitbox.style.width = `${LINE_HITBOX}px`;
+        bindHover(hitbox, targetId);
+        targetWrapper.appendChild(hitbox);
     }
 
     function appendThreadCurve(targetWrapper, targetId, leftPos) {
@@ -215,8 +230,16 @@
         curve.style.borderLeft = BORDER_STYLE;
         curve.style.borderBottom = BORDER_STYLE;
         curve.style.borderBottomLeftRadius = `${CURVE_RADIUS_X}px ${CURVE_RADIUS_Y}px`;
-        bindHover(curve, targetId);
         targetWrapper.appendChild(curve);
+
+        let hitbox = document.createElement('div');
+        hitbox.className = 'ib-thread-hitbox';
+        hitbox.style.left = `${leftPos - Math.floor(LINE_HITBOX / 2)}px`;
+        hitbox.style.top = `${-LINE_OVERLAP - Math.floor(LINE_HITBOX / 2)}px`;
+        hitbox.style.width = `${CURVE_WIDTH + LINE_HITBOX}px`;
+        hitbox.style.height = `${CURVE_HEIGHT + LINE_OVERLAP + LINE_HITBOX}px`;
+        bindHover(hitbox, targetId);
+        targetWrapper.appendChild(hitbox);
     }
 
     function appendToggleButton(targetWrapper, node, leftPos, topPos) {
@@ -244,6 +267,16 @@
         targetWrapper.appendChild(label);
     }
 
+    function positionCollapsedUsernameLabel(node) {
+        if (!node.toggleButton || !node.usernameLabel) return;
+
+        const toggleLeft = parseFloat(node.toggleButton.style.left || '0');
+        const toggleTop = parseFloat(node.toggleButton.style.top || '0');
+        node.usernameLabel.style.left = `${toggleLeft + 30}px`;
+        node.usernameLabel.style.top = `${toggleTop + 5}px`;
+        node.usernameLabel.style.display = 'block';
+    }
+
     commentNodes.forEach(node => {
         let targetWrapper = node.el.querySelector('div[style*="width: 648px"]');
         if (!targetWrapper) return;
@@ -260,7 +293,7 @@
                 // Render a continuous elbow from the top into the comment.
                 appendThreadCurve(targetWrapper, curr.el.id, leftPos);
 
-                if (node.children.length > 0) {
+                if (node.parent) {
                     appendToggleButton(targetWrapper, node, leftPos + CURVE_WIDTH, CURVE_HEIGHT);
                     appendCollapsedUsernameLabel(targetWrapper, node, leftPos + CURVE_WIDTH, CURVE_HEIGHT);
                 }
@@ -302,32 +335,51 @@
 
                 const toggle = node.toggleButton;
                 const usernameLabel = node.usernameLabel;
-                const detailsUsername = node.el.querySelector('.widget_commentsList_comment_details_username');
+                const details = node.el.querySelector('.widget_commentsList_comment_details');
                 const userIcon = node.el.querySelector('.widget_commentsList_comment_usericon');
                 const bubble = node.el.querySelector('div[style*="min-height"]');
                 const links = node.el.querySelector('.widget_commentsList_comment_details_links');
+                const targetWrapper = node.el.querySelector('div[style*="width: 648px"]');
 
                 // The collapsed node hides its body, but keeps its top header/avatar slot minimized
                 if (node.collapsed) {
                     if (toggle) syncToggleButton(toggle, true);
-                    if (usernameLabel) usernameLabel.style.display = '';
-                    if (detailsUsername) detailsUsername.style.visibility = 'hidden';
+                    if (usernameLabel) positionCollapsedUsernameLabel(node);
+                    if (details) {
+                        details.style.visibility = 'hidden';
+                        details.style.height = '0';
+                        details.style.overflow = 'hidden';
+                    }
                     if (userIcon) {
-                        userIcon.style.display = '';
                         userIcon.style.visibility = 'hidden';
+                        userIcon.style.height = '0';
+                        userIcon.style.overflow = 'hidden';
                     }
                     if (bubble) bubble.style.display = 'none';
                     if (links) links.style.display = 'none';
+                    if (targetWrapper) {
+                        targetWrapper.style.minHeight = '30px';
+                        targetWrapper.style.marginLeft = '100px';
+                    }
                 } else {
                     if (toggle) syncToggleButton(toggle, false);
                     if (usernameLabel) usernameLabel.style.display = 'none';
-                    if (detailsUsername) detailsUsername.style.visibility = '';
+                    if (details) {
+                        details.style.visibility = '';
+                        details.style.height = '';
+                        details.style.overflow = '';
+                    }
                     if (userIcon) {
-                        userIcon.style.display = '';
                         userIcon.style.visibility = '';
+                        userIcon.style.height = '';
+                        userIcon.style.overflow = '';
                     }
                     if (bubble) bubble.style.display = '';
                     if (links) links.style.display = '';
+                    if (targetWrapper) {
+                        targetWrapper.style.minHeight = '';
+                        targetWrapper.style.marginLeft = '';
+                    }
                 }
             }
         });
