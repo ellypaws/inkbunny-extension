@@ -101,10 +101,21 @@
     const comments = Array.from(document.querySelectorAll('.widget_commentsList_comment'));
     if (comments.length === 0) return;
 
+    function findOwnElement(root, selector) {
+        return Array.from(root.querySelectorAll(selector))
+            .find(el => el.closest('.widget_commentsList_comment') === root) || null;
+    }
+
     // 2. Parse flat DOM comment levels mathematically into objects
     let commentNodes = comments.map(c => {
+        const bubble = findOwnElement(c, 'div[style*="min-height"]');
+        const indentWrapper = bubble?.parentElement?.matches('div[style*="padding-left"]')
+            ? bubble.parentElement
+            : null;
+        const targetWrapper = bubble?.parentElement?.matches('div[style*="width: 648px"]')
+            ? bubble.parentElement
+            : findOwnElement(c, 'div[style*="width: 648px"]');
         let level = 0;
-        const indentWrapper = c.querySelector('div[style*="padding-left"] > div[style*="min-height"]')?.parentNode;
 
         if (c.classList.contains('widget_commentsList_comment_indented') && indentWrapper) {
             // Inkbunny indents by precisely 29px per nested level
@@ -122,8 +133,14 @@
             isLast: false,
             collapsed: false,
             indentWrapper: indentWrapper,
+            targetWrapper: targetWrapper,
+            details: findOwnElement(c, '.widget_commentsList_comment_details'),
+            userIcon: findOwnElement(c, '.widget_commentsList_comment_usericon'),
+            bubble: bubble,
+            links: findOwnElement(c, '.widget_commentsList_comment_details_links'),
             toggleButton: null,
             usernameLabel: null,
+            hiddenByAncestor: false,
             usernameText: c.querySelector('.widget_commentsList_comment_details_username .widget_userNameSmall a, .widget_commentsList_comment_details_username .widget_userNameSmall')?.textContent?.trim() || ''
         };
     });
@@ -155,7 +172,7 @@
     const LEVEL_WIDTH = 29;
     const LINE_COLOR = '#64748b'; // Sleek slate gray
     const BORDER_STYLE = `1px solid ${LINE_COLOR}`;
-    const LINE_OVERLAP = 3;
+    const LINE_OVERLAP = 5;
     const LINE_HITBOX = 16;
     const CURVE_WIDTH = 14;
     const CURVE_HEIGHT = 20;
@@ -278,7 +295,7 @@
     }
 
     commentNodes.forEach(node => {
-        let targetWrapper = node.el.querySelector('div[style*="width: 648px"]');
+        let targetWrapper = node.targetWrapper;
         if (!targetWrapper) return;
 
         targetWrapper.style.position = 'relative'; // Required for absolute line injection
@@ -313,75 +330,78 @@
         }
     });
 
+    function resetNodeStyles(node) {
+        node.el.style.display = '';
+
+        if (node.toggleButton) syncToggleButton(node.toggleButton, false);
+        if (node.usernameLabel) node.usernameLabel.style.display = 'none';
+        if (node.details) {
+            node.details.style.visibility = '';
+            node.details.style.height = '';
+            node.details.style.overflow = '';
+        }
+        if (node.userIcon) {
+            node.userIcon.style.visibility = '';
+            node.userIcon.style.height = '';
+            node.userIcon.style.overflow = '';
+        }
+        if (node.bubble) node.bubble.style.display = '';
+        if (node.links) node.links.style.display = '';
+        if (node.targetWrapper) {
+            node.targetWrapper.style.minHeight = '';
+            node.targetWrapper.style.marginLeft = '';
+        }
+    }
+
+    function applyCollapsedStyles(node) {
+        if (node.toggleButton) syncToggleButton(node.toggleButton, true);
+        if (node.usernameLabel) positionCollapsedUsernameLabel(node);
+        if (node.details) {
+            node.details.style.visibility = 'hidden';
+            node.details.style.height = '0';
+            node.details.style.overflow = 'hidden';
+        }
+        if (node.userIcon) {
+            node.userIcon.style.visibility = 'hidden';
+            node.userIcon.style.height = '0';
+            node.userIcon.style.overflow = 'hidden';
+        }
+        if (node.bubble) node.bubble.style.display = 'none';
+        if (node.links) node.links.style.display = 'none';
+        if (node.targetWrapper) {
+            node.targetWrapper.style.minHeight = '30px';
+            node.targetWrapper.style.marginLeft = '256px';
+        }
+    }
+
     // 5. Logic to dynamically toggle visibility across tree maps
     function updateVisibility() {
         commentNodes.forEach(node => {
-            let isHidden = false;
+            node.hiddenByAncestor = false;
             let curr = node.parent;
 
             while (curr) {
                 if (curr.collapsed) {
-                    isHidden = true;
+                    node.hiddenByAncestor = true;
                     break;
                 }
                 curr = curr.parent;
             }
 
-            // A descendant of a collapsed node disappears completely
-            if (isHidden) {
+            resetNodeStyles(node);
+        });
+
+        commentNodes.forEach(node => {
+            if (node.hiddenByAncestor) {
                 node.el.style.display = 'none';
-            } else {
-                node.el.style.display = '';
+                return;
+            }
 
-                const toggle = node.toggleButton;
-                const usernameLabel = node.usernameLabel;
-                const details = node.el.querySelector('.widget_commentsList_comment_details');
-                const userIcon = node.el.querySelector('.widget_commentsList_comment_usericon');
-                const bubble = node.el.querySelector('div[style*="min-height"]');
-                const links = node.el.querySelector('.widget_commentsList_comment_details_links');
-                const targetWrapper = node.el.querySelector('div[style*="width: 648px"]');
-
-                // The collapsed node hides its body, but keeps its top header/avatar slot minimized
-                if (node.collapsed) {
-                    if (toggle) syncToggleButton(toggle, true);
-                    if (usernameLabel) positionCollapsedUsernameLabel(node);
-                    if (details) {
-                        details.style.visibility = 'hidden';
-                        details.style.height = '0';
-                        details.style.overflow = 'hidden';
-                    }
-                    if (userIcon) {
-                        userIcon.style.visibility = 'hidden';
-                        userIcon.style.height = '0';
-                        userIcon.style.overflow = 'hidden';
-                    }
-                    if (bubble) bubble.style.display = 'none';
-                    if (links) links.style.display = 'none';
-                    if (targetWrapper) {
-                        targetWrapper.style.minHeight = '30px';
-                        targetWrapper.style.marginLeft = '256px';
-                    }
-                } else {
-                    if (toggle) syncToggleButton(toggle, false);
-                    if (usernameLabel) usernameLabel.style.display = 'none';
-                    if (details) {
-                        details.style.visibility = '';
-                        details.style.height = '';
-                        details.style.overflow = '';
-                    }
-                    if (userIcon) {
-                        userIcon.style.visibility = '';
-                        userIcon.style.height = '';
-                        userIcon.style.overflow = '';
-                    }
-                    if (bubble) bubble.style.display = '';
-                    if (links) links.style.display = '';
-                    if (targetWrapper) {
-                        targetWrapper.style.minHeight = '';
-                        targetWrapper.style.marginLeft = '';
-                    }
-                }
+            if (node.collapsed) {
+                applyCollapsedStyles(node);
             }
         });
     }
+
+    updateVisibility();
 })();
