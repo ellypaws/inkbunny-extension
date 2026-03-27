@@ -197,7 +197,7 @@
 	 * @returns {boolean} True when the thread line should continue upward.
 	 */
 	function commentsList_threads_sharesVisualColumnWithParent(node) {
-		return !!(node && node.parent && node.level <= node.parent.level);
+		return !!(node && node.parent && node.visualLevel <= node.parent.visualLevel);
 	}
 
 	/**
@@ -411,6 +411,9 @@
 				commentId: commentsList_threads_getCommentId(comment, 'data-comment-id'),
 				parentCommentId: (explicitParentCommentId !== null && explicitParentCommentId > 0) ? explicitParentCommentId : replyLinkParentCommentId,
 				level: commentsList_threads_getLevel(indentWrapper),
+				domLevel: commentsList_threads_getLevel(indentWrapper),
+				treeDepth: 0,
+				visualLevel: commentsList_threads_getLevel(indentWrapper),
 				children: [],
 				parent: null,
 				isLast: false,
@@ -463,7 +466,7 @@
 			) {
 				parentNode = nodeByCommentId[node.parentCommentId];
 			} else {
-				while (stack.length > 0 && stack[stack.length - 1].level >= node.level) {
+				while (stack.length > 0 && stack[stack.length - 1].domLevel >= node.domLevel) {
 					stack.pop();
 				}
 
@@ -478,6 +481,18 @@
 			}
 
 			stack.push(node);
+		}
+
+		for (index = 0; index < commentNodes.length; index++) {
+			const node = commentNodes[index];
+
+			if (node.parent) {
+				node.treeDepth = node.parent.treeDepth + 1;
+				node.visualLevel = Math.min(node.treeDepth, 8);
+			} else {
+				node.treeDepth = 0;
+				node.visualLevel = 0;
+			}
 		}
 
 		for (index = 0; index < commentNodes.length; index++) {
@@ -1112,7 +1127,7 @@
 
 			current = node;
 			while (current.parent) {
-				const leftPos = ((Math.max(current.level, current.parent ? 1 : 0) - 1) * COMMENTS_LIST_THREAD_LEVEL_WIDTH) + COMMENTS_LIST_THREAD_LINE_OFFSET;
+				const leftPos = ((Math.max(current.visualLevel, current.parent ? 1 : 0) - 1) * COMMENTS_LIST_THREAD_LEVEL_WIDTH) + COMMENTS_LIST_THREAD_LINE_OFFSET;
 
 				if (current === node) {
 					commentsList_threads_appendThreadCurve(targetWrapper, current.el.id, leftPos, nodeById, updateVisibility);
