@@ -409,7 +409,7 @@
 			nodes.push({
 				el: comment,
 				commentId: commentsList_threads_getCommentId(comment, 'data-comment-id'),
-				parentCommentId: (explicitParentCommentId !== null && explicitParentCommentId > 0) ? explicitParentCommentId : replyLinkParentCommentId,
+				parentCommentId: (replyLinkParentCommentId !== null && replyLinkParentCommentId > 0) ? replyLinkParentCommentId : explicitParentCommentId,
 				level: commentsList_threads_getLevel(indentWrapper),
 				domLevel: commentsList_threads_getLevel(indentWrapper),
 				treeDepth: 0,
@@ -436,7 +436,8 @@
 	}
 
 	/**
-	 * Reconstructs the comment tree using the existing rendered indent levels.
+	 * Reconstructs the comment tree using anchor-based parent references first,
+	 * falling back to rendered indent levels when no anchor is available.
 	 *
 	 * @param {Array.<Object>} commentNodes Normalized comment node objects.
 	 * @returns {void}
@@ -466,7 +467,7 @@
 			) {
 				parentNode = nodeByCommentId[node.parentCommentId];
 			} else {
-				while (stack.length > 0 && stack[stack.length - 1].domLevel >= node.domLevel) {
+				while (stack.length > 0 && stack[stack.length - 1].stackLevel >= node.domLevel) {
 					stack.pop();
 				}
 
@@ -478,6 +479,9 @@
 			if (parentNode && parentNode !== node) {
 				node.parent = parentNode;
 				node.parent.children.push(node);
+				node.stackLevel = (parentNode.stackLevel || 0) + 1;
+			} else {
+				node.stackLevel = node.domLevel;
 			}
 
 			stack.push(node);
